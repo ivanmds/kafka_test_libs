@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Kafka.DefaultValues;
 
 namespace Kafka.Values
 {
@@ -11,16 +12,10 @@ namespace Kafka.Values
             _header = new Dictionary<string, string>();
         }
 
-        public static HeaderValue Create(KeyValue keyValue)
+        public void AddCorrelationId(string value)
         {
-            var header = new HeaderValue();
-            header.PutKeyValue(keyValue);
-
-            return header;
+            PutKeyValue(KeyValue.Create(DefaultHeader.KeyCorrelationId, value));
         }
-
-        public static HeaderValue Create(string key, string value)
-            => Create(new KeyValue(key, value));
 
         public IEnumerable<KeyValue> GetKeyValues()
         {
@@ -38,6 +33,18 @@ namespace Kafka.Values
 
         public void PutKeyValue(string key, string value)
             => PutKeyValue(new KeyValue(key, value));
+
+
+        public static HeaderValue Create(KeyValue keyValue)
+        {
+            var header = new HeaderValue();
+            header.PutKeyValue(keyValue);
+
+            return header;
+        }
+
+        public static HeaderValue Create(string key, string value)
+            => Create(new KeyValue(key, value));
     }
 
     public class KeyValue

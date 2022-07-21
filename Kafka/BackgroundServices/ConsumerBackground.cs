@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Confluent.Kafka;
 using Kafka.Configuration;
+using Kafka.DefaultValues;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
@@ -22,7 +23,6 @@ namespace Kafka.BackgroundServices
             _consumerConfiguration = consumerConfiguration;
         }
 
-
         public override async Task StartAsync(CancellationToken cancellationToken)
         {
             var conf = new ConsumerConfig
@@ -30,7 +30,7 @@ namespace Kafka.BackgroundServices
                 GroupId = _consumerConfiguration.ListenerConfiguration.GroupId,
                 BootstrapServers = _consumerConfiguration.ListenerConfiguration.KafkaBuilder.KafkaConnection.BootstrapServers,
                 AutoOffsetReset = AutoOffsetReset.Earliest,
-                EnableAutoCommit = true
+                EnableAutoCommit = false
             };
 
             _consumer = new ConsumerBuilder<string, string>(conf).Build();
@@ -40,12 +40,10 @@ namespace Kafka.BackgroundServices
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-           
-
             try
             {
                 using var scope = _services.CreateScope();
-                await Task.Run(async () =>
+                await Task.Run(() =>
                 {
                     while (!stoppingToken.IsCancellationRequested)
                     {
@@ -59,23 +57,27 @@ namespace Kafka.BackgroundServices
 
                             var methodGetTypeMessage = _consumerConfiguration.TypeConsumer.GetMethod("GetTypeMessage");
                             var typeMessage = (Type)methodGetTypeMessage.Invoke(consumer, null);
-                            
-                            var msgParsed = typeMessage.Name == "String" ? msgBody : JsonConvert.DeserializeObject(msgBody, typeMessage, DefaultConfiguration.JsonSettings);
+
+                            var msgParsed = typeMessage.Name == "String" ? msgBody : JsonConvert.DeserializeObject(msgBody, typeMessage, DefaultSerializerSettings.JsonSettings);
 
                             var methodBeforeConsume = _consumerConfiguration.TypeConsumer.GetMethod("BeforeConsume");
                             methodBeforeConsume.Invoke(consumer, new[] { msgParsed });
 
-                            var methodConsume = _consumerConfiguration.TypeConsumer.GetMethod("Consume");
-                            methodConsume.Invoke(consumer, new[] { msgParsed });
+                            var methodConsume = _consumerConfiguration.TypeConsumer.GetMethod("ConsumeAsync");
+                            var methodConsumeResult = (Task)methodConsume.Invoke(consumer, new[] { msgParsed });
+                            methodConsumeResult.Wait(); 
 
                             var methodAfterConsume = _consumerConfiguration.TypeConsumer.GetMethod("AfterConsume");
                             methodAfterConsume.Invoke(consumer, new[] { msgParsed });
+
+                            _consumer.Commit();
                         }
-                        catch(Exception ex)
+                        catch (Exception ex)
                         {
                             var consumer = scope.ServiceProvider.GetService(_consumerConfiguration.TypeConsumer);
                             var methodErrorConsume = _consumerConfiguration.TypeConsumer.GetMethod("ErrorConsume");
                             methodErrorConsume.Invoke(consumer, new[] { ex });
+                            _consumer.Commit();
                         }
                     }
                 });
@@ -88,8 +90,11 @@ namespace Kafka.BackgroundServices
 
         public override async Task StopAsync(CancellationToken cancellationToken)
         {
-            _consumer?.Unsubscribe();
-            _consumer?.Close();
+            await Task.Run(() =>
+            {
+                _consumer?.Unsubscribe();
+                _consumer?.Close();
+            });
         }
     }
 }

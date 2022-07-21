@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace Kafka.Consumers
 {
@@ -14,7 +15,7 @@ namespace Kafka.Consumers
 
         public virtual void BeforeConsume(TMessage message) { }
 
-        public abstract void Consume(TMessage message);
+        public abstract Task ConsumeAsync(TMessage message);
 
         public virtual void AfterConsume(TMessage message) { }
 
@@ -24,6 +25,5 @@ namespace Kafka.Consumers
         {
             return _typeMessage;
         } 
-
     }
 }

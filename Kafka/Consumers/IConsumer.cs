@@ -1,7 +1,9 @@
-﻿namespace Kafka.Consumers
+﻿using System.Threading.Tasks;
+
+namespace Kafka.Consumers
 {
     internal interface IConsumer<TMessage> where TMessage : class
     {
-        void Consume(TMessage message);
+        Task ConsumeAsync(TMessage message);
     }
 }

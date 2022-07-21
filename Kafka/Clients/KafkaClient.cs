@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Confluent.Kafka;
 using Kafka.Configuration;
+using Kafka.DefaultValues;
 using Kafka.Values;
 using Newtonsoft.Json;
 
@@ -28,7 +29,7 @@ namespace Kafka.Clients
 
         public async Task ProduceAsync(string topicName, string key, object message, HeaderValue? header, CancellationToken cancellationToken)
         {
-            var messageNotification = JsonConvert.SerializeObject(message, DefaultConfiguration.JsonSettings);
+            var messageNotification = JsonConvert.SerializeObject(message, DefaultSerializerSettings.JsonSettings);
             var kafkaMessage = new Message<string, string> { Key = key, Value = messageNotification };
 
             if (header != null)

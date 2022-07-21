@@ -5,14 +5,21 @@ namespace KafkaTest.Consumers
 {
     public class SimpleConsumer : Consumer<Customer>
     {
+        private readonly ILogger<SimpleConsumer> _logger;
+
+        public SimpleConsumer(ILogger<SimpleConsumer> logger)
+        {
+            _logger = logger;
+        }
+
         public override void BeforeConsume(Customer message)
         {
             Console.WriteLine("before simple consumer " + message.Name);
         }
 
-        public override void Consume(Customer message)
+        public override async Task ConsumeAsync(Customer message)
         {
-            Console.WriteLine("simple consumer " + message.Name);
+            _logger.LogInformation("simple consumer " + message.Name);
         }
 
         public override void AfterConsume(Customer message)

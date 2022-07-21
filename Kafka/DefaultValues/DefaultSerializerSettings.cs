@@ -3,9 +3,9 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 
-namespace Kafka
+namespace Kafka.DefaultValues
 {
-    internal static class DefaultConfiguration
+    internal static class DefaultSerializerSettings
     {
         private static JsonSerializerSettings _jsonSettings = new JsonSerializerSettings
         {

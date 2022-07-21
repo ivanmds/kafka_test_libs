@@ -5,7 +5,7 @@ namespace KafkaTest.Consumers
 {
     public class SecondConsumer : Consumer<Customer>
     {
-        public override void Consume(Customer message)
+        public override async Task ConsumeAsync(Customer message)
         {
             Console.WriteLine(message);
         }

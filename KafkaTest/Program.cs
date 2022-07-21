@@ -13,13 +13,12 @@ builder.Services.AddSwaggerGen();
 
 
 
-var kafkaConnection = KafkaConnection.Create("localhost:9092");
-var consumerBuilder = builder.Services.AddKafka(kafkaConnection);
+var consumerBuilder = builder.Services.AddKafka(KafkaConnection.Create("localhost:9092"));
 
-consumerBuilder.CreateListerner("test.temp", "test_consumer")
+consumerBuilder.CreateListener("test.temp", "test_consumer")
     .AddConsumer<SimpleConsumer>();
 
-consumerBuilder.CreateListerner("test.temp", "test_consumer_2")
+consumerBuilder.CreateListener("test.temp", "test_consumer_2")
     .AddConsumer<SecondConsumer>();
 
 

@@ -7,7 +7,7 @@ namespace Kafka.Configuration
     {
         private readonly IServiceCollection _services;
         private readonly KafkaBuilder _kafkaBuilder;
-        private ListenerConfiguration _listernerConfiguration;
+        private ListenerConfiguration _listenerConfiguration;
 
         public ConsumerBuilder(IServiceCollection services, KafkaBuilder kafkaBuilder)
         {
@@ -15,17 +15,16 @@ namespace Kafka.Configuration
             _kafkaBuilder = kafkaBuilder;
         }
 
-
-        public ConsumerBuilder CreateListerner(string topicName, string groupId)
+        public ConsumerBuilder CreateListener(string topicName, string groupId)
         {
-            _listernerConfiguration = ListenerConfiguration.Create(topicName, groupId, _kafkaBuilder);
+            _listenerConfiguration = ListenerConfiguration.Create(topicName, groupId, _kafkaBuilder);
             return this;
         }
 
         public ConsumerBuilder AddConsumer<TConsumer>(string? eventName = null)
             where TConsumer : class
         {
-            var consumerConfiguration = ConsumerConfiguration<TConsumer>.Create(_listernerConfiguration, eventName);
+            var consumerConfiguration = ConsumerConfiguration<TConsumer>.Create(_listenerConfiguration, eventName);
 
             _services.AddSingleton(consumerConfiguration.TypeConsumer);
             _services.AddSingleton(consumerConfiguration);
