@@ -5,6 +5,7 @@ using Confluent.Kafka;
 using Kafka.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Newtonsoft.Json;
 
 namespace Kafka.BackgroundServices
 {
@@ -39,6 +40,8 @@ namespace Kafka.BackgroundServices
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+           
+
             try
             {
                 using var scope = _services.CreateScope();
@@ -47,19 +50,46 @@ namespace Kafka.BackgroundServices
                     while (!stoppingToken.IsCancellationRequested)
                     {
                         var result = _consumer.Consume(stoppingToken);
-                        var msgBody = result.Message.Value;
 
-                        var consumer = scope.ServiceProvider.GetService(_consumerConfiguration.TypeConsumer);
-                        var methodConsume = _consumerConfiguration.TypeConsumer.GetMethod("Consume");
+                        try
+                        {
+                            var msgBody = result.Message.Value;
 
-                        methodConsume.Invoke(consumer, new[] { msgBody });
+                            var consumer = scope.ServiceProvider.GetService(_consumerConfiguration.TypeConsumer);
+
+                            var methodGetTypeMessage = _consumerConfiguration.TypeConsumer.GetMethod("GetTypeMessage");
+                            var typeMessage = (Type)methodGetTypeMessage.Invoke(consumer, null);
+                            
+                            var msgParsed = typeMessage.Name == "String" ? msgBody : JsonConvert.DeserializeObject(msgBody, typeMessage, DefaultConfiguration.JsonSettings);
+
+                            var methodBeforeConsume = _consumerConfiguration.TypeConsumer.GetMethod("BeforeConsume");
+                            methodBeforeConsume.Invoke(consumer, new[] { msgParsed });
+
+                            var methodConsume = _consumerConfiguration.TypeConsumer.GetMethod("Consume");
+                            methodConsume.Invoke(consumer, new[] { msgParsed });
+
+                            var methodAfterConsume = _consumerConfiguration.TypeConsumer.GetMethod("AfterConsume");
+                            methodAfterConsume.Invoke(consumer, new[] { msgParsed });
+                        }
+                        catch(Exception ex)
+                        {
+                            var consumer = scope.ServiceProvider.GetService(_consumerConfiguration.TypeConsumer);
+                            var methodErrorConsume = _consumerConfiguration.TypeConsumer.GetMethod("ErrorConsume");
+                            methodErrorConsume.Invoke(consumer, new[] { ex });
+                        }
                     }
                 });
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+                throw ex;
             }
+        }
+
+        public override async Task StopAsync(CancellationToken cancellationToken)
+        {
+            _consumer?.Unsubscribe();
+            _consumer?.Close();
         }
     }
 }

@@ -1,12 +1,13 @@
-﻿using Kafka;
+﻿using Kafka.Consumers;
+using KafkaTest.Models;
 
 namespace KafkaTest.Consumers
 {
-    public class SecondConsumer : IConsumer<string>
+    public class SecondConsumer : Consumer<Customer>
     {
-        public void Consume(string message)
+        public override void Consume(Customer message)
         {
-            Console.WriteLine("second consumer" + message);
+            Console.WriteLine(message);
         }
     }
 }

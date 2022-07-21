@@ -22,13 +22,11 @@ namespace Kafka.Configuration
             return this;
         }
 
-        public ConsumerBuilder AddConsumer<TMessage, TConsumer>(string? eventName = null)
-            where TMessage : class
+        public ConsumerBuilder AddConsumer<TConsumer>(string? eventName = null)
             where TConsumer : class
         {
-            var consumerConfiguration = ConsumerConfiguration<TConsumer>.Create<TMessage>(_listernerConfiguration, eventName);
+            var consumerConfiguration = ConsumerConfiguration<TConsumer>.Create(_listernerConfiguration, eventName);
 
-            
             _services.AddSingleton(consumerConfiguration.TypeConsumer);
             _services.AddSingleton(consumerConfiguration);
             _services.AddHostedService<ConsumerBackground<TConsumer>>();
