@@ -39,9 +39,10 @@ namespace KafkaTest.Controllers
             .ToArray();
         }
 
+        int refer = count++;
         private Customer GetCustomer()
         {
-            int refer = count++;
+            
             return new Customer
             {
                 Name = $"Test Name {refer}",
@@ -70,7 +71,7 @@ namespace KafkaTest.Controllers
             var notification = new CustomerNotification();
             var customer = GetCustomer();
             
-            notification.Name = "CUSTOMER_WAS_CREATED";
+            notification.Name = refer % 2 == 0 ? "CUSTOMER_WAS_CREATED" : "CUSTOMER_WAS_UPDATED";
             notification.Timestamp = DateTime.Now;
             notification.Data = customer;
             notification.EntityId = customer.DocumentNumber;

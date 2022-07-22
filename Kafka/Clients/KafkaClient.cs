@@ -36,6 +36,8 @@ namespace Kafka.Clients
             var messageNotification = JsonConvert.SerializeObject(message, DefaultSerializerSettings.JsonSettings);
             var kafkaMessage = new Message<string, string> { Key = key, Value = messageNotification };
 
+            header ??= new HeaderValue();
+
             if (header != null)
             {
                 kafkaMessage.Headers = new Headers();
@@ -62,6 +64,7 @@ namespace Kafka.Clients
 
             header ??= new HeaderValue();
             header.AddIsNotification();
+            header.AddEventName(eventMessage.Name);
 
             kafkaMessage.Headers = new Headers();
 

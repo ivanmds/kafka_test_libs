@@ -22,6 +22,11 @@ namespace Kafka.Values
             PutKeyValue(KeyValue.Create(DefaultHeader.KeyIsNotification, "true"));
         }
 
+        public void AddEventName(string eventName)
+        {
+            PutKeyValue(KeyValue.Create(DefaultHeader.KeyEventName, eventName));
+        }
+
         public IEnumerable<KeyValue> GetKeyValues()
         {
             foreach (var kv in _header)

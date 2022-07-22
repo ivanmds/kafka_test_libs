@@ -15,11 +15,12 @@ builder.Services.AddSwaggerGen();
 
 var consumerBuilder = builder.Services.AddKafka(KafkaConnection.Create("localhost:9092"));
 
-consumerBuilder.CreateListener("test.temp", "test_consumer")
-    .AddConsumer<SimpleConsumer>();
+consumerBuilder.CreateListener("bankly.event.customers", "test_consumer")
+    .AddConsumer<SimpleConsumer>("CUSTOMER_WAS_CREATED")
+    .AddConsumer<SecondConsumer>("CUSTOMER_WAS_UPDATED");
 
-consumerBuilder.CreateListener("test.temp", "test_consumer_2")
-    .AddConsumer<SecondConsumer>();
+//consumerBuilder.CreateListener("test.temp", "test_consumer_2")
+//    .AddConsumer<SecondConsumer>();
 
 
 

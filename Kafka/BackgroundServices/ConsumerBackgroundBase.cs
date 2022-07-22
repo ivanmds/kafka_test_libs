@@ -2,7 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Confluent.Kafka;
-using Kafka.Configuration;
+using Kafka.Configuration.GroupConsumers;
 using Kafka.DefaultValues;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -10,14 +10,14 @@ using Newtonsoft.Json;
 
 namespace Kafka.BackgroundServices
 {
-    internal class ConsumerBackground<TConsumer> : BackgroundService
-        where TConsumer : class
+    internal class ConsumerBackgroundBase<TGroupConsumerConfiguration> : BackgroundService
+        where TGroupConsumerConfiguration : GroupConsumerConfigurationBase
     {
         private readonly IServiceProvider _services;
-        private readonly ConsumerConfiguration<TConsumer> _consumerConfiguration;
+        private readonly TGroupConsumerConfiguration _consumerConfiguration;
         private IConsumer<string, string> _consumer;
 
-        public ConsumerBackground(IServiceProvider services, ConsumerConfiguration<TConsumer> consumerConfiguration)
+        public ConsumerBackgroundBase(IServiceProvider services, TGroupConsumerConfiguration consumerConfiguration)
         {
             _services = services;
             _consumerConfiguration = consumerConfiguration;
@@ -52,31 +52,33 @@ namespace Kafka.BackgroundServices
                         try
                         {
                             var msgBody = result.Message.Value;
+                            var consumerKey = _consumerConfiguration.GetConsumerKey(null);
+                            var consumerType = RegistryTypes.Recover(consumerKey);
 
-                            var consumer = scope.ServiceProvider.GetService(_consumerConfiguration.TypeConsumer);
+                            var consumer = scope.ServiceProvider.GetService(consumerType);
 
-                            var methodGetTypeMessage = _consumerConfiguration.TypeConsumer.GetMethod("GetTypeMessage");
+                            var methodGetTypeMessage = consumerType.GetMethod("GetTypeMessage");
                             var typeMessage = (Type)methodGetTypeMessage.Invoke(consumer, null);
 
                             var msgParsed = typeMessage.Name == "String" ? msgBody : JsonConvert.DeserializeObject(msgBody, typeMessage, DefaultSerializerSettings.JsonSettings);
 
-                            var methodBeforeConsume = _consumerConfiguration.TypeConsumer.GetMethod("BeforeConsume");
+                            var methodBeforeConsume = consumerType.GetMethod("BeforeConsume");
                             methodBeforeConsume.Invoke(consumer, new[] { msgParsed });
 
-                            var methodConsume = _consumerConfiguration.TypeConsumer.GetMethod("ConsumeAsync");
+                            var methodConsume = consumerType.GetMethod("ConsumeAsync");
                             var methodConsumeResult = (Task)methodConsume.Invoke(consumer, new[] { msgParsed });
                             methodConsumeResult.Wait(); 
 
-                            var methodAfterConsume = _consumerConfiguration.TypeConsumer.GetMethod("AfterConsume");
+                            var methodAfterConsume = consumerType.GetMethod("AfterConsume");
                             methodAfterConsume.Invoke(consumer, new[] { msgParsed });
 
                             _consumer.Commit();
                         }
                         catch (Exception ex)
                         {
-                            var consumer = scope.ServiceProvider.GetService(_consumerConfiguration.TypeConsumer);
-                            var methodErrorConsume = _consumerConfiguration.TypeConsumer.GetMethod("ErrorConsume");
-                            methodErrorConsume.Invoke(consumer, new[] { ex });
+                            //var consumer = scope.ServiceProvider.GetService(_consumerConfiguration.TypeConsumer);
+                            //var methodErrorConsume = _consumerConfiguration.TypeConsumer.GetMethod("ErrorConsume");
+                            //methodErrorConsume.Invoke(consumer, new[] { ex });
                             _consumer.Commit();
                         }
                     }
@@ -84,7 +86,7 @@ namespace Kafka.BackgroundServices
             }
             catch (Exception ex)
             {
-                throw ex;
+                //throw ex;
             }
         }
 
