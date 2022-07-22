@@ -1,5 +1,5 @@
 using Kafka;
-using Kafka.Values;
+using Kafka.Notifications;
 using KafkaTest.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,7 +7,7 @@ namespace KafkaTest.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class WeatherForecastController : ControllerBase
+    public class TestWeatherForecastController : ControllerBase
     {
         static int count = 0;
         private static readonly string[] Summaries = new[]
@@ -18,22 +18,17 @@ namespace KafkaTest.Controllers
         private readonly IProducerMessage _producerMessage;
         private readonly ILogger<WeatherForecastController> _logger;
 
-        public WeatherForecastController(ILogger<WeatherForecastController> logger, IProducerMessage producerMessage)
+        public TestWeatherForecastController(ILogger<WeatherForecastController> logger, IProducerMessage producerMessage)
         {
             _logger = logger;
             _producerMessage = producerMessage;
         }
 
-
-
-        [HttpGet(Name = "GetWeatherForecast")]
-        public async Task<IEnumerable<WeatherForecast>> Get()
+        [HttpGet(Name = "GetTest")]
+        public async Task<IEnumerable<WeatherForecast>> GetTest()
         {
-            var header = HeaderValue.Create("answer_to_topic", "test_local_response");
-            header.PutKeyValue("test_another_head", "yes, It´s work");
-
-            var customer = GetCustomer();
-            await _producerMessage.ProduceAsync("test.temp", "001", customer, header);
+            var customer = GetCustomerNotification();
+            await _producerMessage.ProduceAsync("bankly.event.customers", "001", customer);
 
             return Enumerable.Range(1, 5).Select(index => new WeatherForecast
             {
@@ -68,5 +63,41 @@ namespace KafkaTest.Controllers
                 Contacts = new List<Contact> { new Contact { Type = ContactType.Email, Value = $"Value {refer}" } }
             };
         }
+
+
+        private CustomerNotification GetCustomerNotification()
+        {
+            var notification = new CustomerNotification();
+            var customer = GetCustomer();
+            
+            notification.Name = "CUSTOMER_WAS_CREATED";
+            notification.Timestamp = DateTime.Now;
+            notification.Data = customer;
+            notification.EntityId = customer.DocumentNumber;
+            notification.Context = "ACCOUNT";
+            notification.Metadata = new Dictionary<string, object>();
+            notification.Metadata.Add("Test", "test");
+            notification.CompanyKey = "BANKLY";
+
+            return notification;
+        }
+
+    }
+
+    public class CustomerNotification : IEventNotification<Customer>
+    {
+        public string EntityId { get; set; }
+
+        public string CompanyKey { get; set; }
+
+        public string Context { get; set; }
+
+        public string Name { get; set; }
+
+        public DateTime Timestamp { get; set; }
+
+        public IDictionary<string, object> Metadata { get; set; }
+
+        public Customer Data { get; set; }
     }
 }

@@ -17,6 +17,11 @@ namespace Kafka.Values
             PutKeyValue(KeyValue.Create(DefaultHeader.KeyCorrelationId, value));
         }
 
+        public void AddIsNotification()
+        {
+            PutKeyValue(KeyValue.Create(DefaultHeader.KeyIsNotification, "true"));
+        }
+
         public IEnumerable<KeyValue> GetKeyValues()
         {
             foreach (var kv in _header)
@@ -45,6 +50,9 @@ namespace Kafka.Values
 
         public static HeaderValue Create(string key, string value)
             => Create(new KeyValue(key, value));
+
+        public static HeaderValue Create()
+            => new HeaderValue();
     }
 
     public class KeyValue

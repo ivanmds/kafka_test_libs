@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Confluent.Kafka;
 using Kafka.Configuration;
 using Kafka.DefaultValues;
+using Kafka.Notifications;
 using Kafka.Values;
 using Newtonsoft.Json;
 
@@ -29,6 +30,9 @@ namespace Kafka.Clients
 
         public async Task ProduceAsync(string topicName, string key, object message, HeaderValue? header, CancellationToken cancellationToken)
         {
+            if (topicName.StartsWith("bankly.event"))
+                throw new System.Exception("Should be used the method to IEventNotification");
+
             var messageNotification = JsonConvert.SerializeObject(message, DefaultSerializerSettings.JsonSettings);
             var kafkaMessage = new Message<string, string> { Key = key, Value = messageNotification };
 
@@ -43,6 +47,31 @@ namespace Kafka.Clients
                     kafkaMessage.Headers.Add(msgHeader);
                 }
             }
+
+            await _kafkaProducer.ProduceAsync(topicName, kafkaMessage, cancellationToken);
+        }
+
+        public async Task ProduceAsync<T>(string topicName, string key, IEventNotification<T> eventMessage, HeaderValue? header, CancellationToken cancellationToken)
+            where T : class
+        {
+            if (!topicName.StartsWith("bankly.event"))
+                throw new System.Exception("The topic name should be started with bankly.event");
+
+            var messageNotification = JsonConvert.SerializeObject(eventMessage, DefaultSerializerSettings.JsonSettings);
+            var kafkaMessage = new Message<string, string> { Key = key, Value = messageNotification };
+
+            header ??= new HeaderValue();
+            header.AddIsNotification();
+
+            kafkaMessage.Headers = new Headers();
+
+            foreach (var kv in header.GetKeyValues())
+            {
+                var valueBytes = Encoding.ASCII.GetBytes(kv.Value);
+                var msgHeader = new Header(kv.Key, valueBytes);
+                kafkaMessage.Headers.Add(msgHeader);
+            }
+
 
             await _kafkaProducer.ProduceAsync(topicName, kafkaMessage, cancellationToken);
         }
