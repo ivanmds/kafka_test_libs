@@ -15,9 +15,18 @@ builder.Services.AddSwaggerGen();
 
 var consumerBuilder = builder.Services.AddKafka(KafkaConnection.Create("localhost:9092"));
 
-consumerBuilder.CreateListener("bankly.event.customers", "test_consumer")
-    .AddConsumer<SimpleConsumer>("CUSTOMER_WAS_CREATED")
+consumerBuilder.CreateListener("bankly.event.customers", "event_customer")
+    .AddConsumer<SimpleConsumer>("CUSTOMER_WAS_CREATED", { retries = [ 1, 3, 5] })
     .AddConsumer<SecondConsumer>("CUSTOMER_WAS_UPDATED");
+
+
+
+"retry_1.event_customer.bankly.event.customers"
+"retry_3.event_customer.bankly.event.customers"
+"retry_5.event_customer.bankly.event.customers"
+"dlq.event_customer.bankly.event.customers"
+
+
 
 //consumerBuilder.CreateListener("test.temp", "test_consumer_2")
 //    .AddConsumer<SecondConsumer>();

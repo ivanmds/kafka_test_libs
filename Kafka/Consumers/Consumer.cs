@@ -13,17 +13,17 @@ namespace Kafka.Consumers
             _typeMessage = typeof(TMessage);
         }
 
-        public virtual void BeforeConsume(TMessage message) { }
-
-        public abstract Task ConsumeAsync(TMessage message);
-
-        public virtual void AfterConsume(TMessage message) { }
-
+        public virtual void BeforeConsume(Context context, TMessage message) { }
+        public abstract Task ConsumeAsync(Context context, TMessage message);
+        public virtual void AfterConsume(Context context, TMessage message) { }
         public virtual void ErrorConsume(Exception ex) { }
+
 
         public Type GetTypeMessage()
         {
             return _typeMessage;
-        } 
+        }
+
+
     }
 }

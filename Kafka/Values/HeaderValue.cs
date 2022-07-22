@@ -22,9 +22,25 @@ namespace Kafka.Values
             PutKeyValue(KeyValue.Create(DefaultHeader.KeyIsNotification, "true"));
         }
 
+        public bool IsNotification()
+        {
+            return _header.ContainsKey(DefaultHeader.KeyIsNotification);
+        }
+
         public void AddEventName(string eventName)
         {
             PutKeyValue(KeyValue.Create(DefaultHeader.KeyEventName, eventName));
+        }
+
+        public string GetEventName()
+        {
+            var eventName = string.Empty;
+            _header.TryGetValue(DefaultHeader.KeyEventName, out eventName);
+            
+            if (string.IsNullOrWhiteSpace(eventName))
+                eventName = DefaultHeader.KeyDefaultEvenName;
+
+            return eventName;
         }
 
         public IEnumerable<KeyValue> GetKeyValues()

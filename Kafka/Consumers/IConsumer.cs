@@ -4,6 +4,6 @@ namespace Kafka.Consumers
 {
     internal interface IConsumer<TMessage> where TMessage : class
     {
-        Task ConsumeAsync(TMessage message);
+        Task ConsumeAsync(Context context, TMessage message);
     }
 }

@@ -12,17 +12,17 @@ namespace KafkaTest.Consumers
             _logger = logger;
         }
 
-        public override void BeforeConsume(Customer message)
+        public override void BeforeConsume(Context context, Customer message)
         {
             Console.WriteLine("before simple consumer " + message.Name);
         }
 
-        public override async Task ConsumeAsync(Customer message)
+        public override async Task ConsumeAsync(Context context, Customer message)
         {
             _logger.LogInformation("simple consumer " + message.Name);
         }
 
-        public override void AfterConsume(Customer message)
+        public override void AfterConsume(Context context, Customer message)
         {
             Console.WriteLine("after simple consumer " + message.Name);
         }

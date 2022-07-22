@@ -2,6 +2,6 @@
 {
     internal interface IBeforeConsume<TMessage> where TMessage : class
     {
-        void BeforeConsume(TMessage message);
+        void BeforeConsume(Context context, TMessage message);
     }
 }
