@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 
-namespace Kafka.DefaultValues
+namespace Bankly.Sdk.Kafka.DefaultValues
 {
     internal static class DefaultSerializerSettings
     {

@@ -1,4 +1,4 @@
-﻿namespace Kafka.Clients
+﻿namespace Bankly.Sdk.Kafka.Clients
 {
     public interface IKafkaClient : IProducerMessage
     {

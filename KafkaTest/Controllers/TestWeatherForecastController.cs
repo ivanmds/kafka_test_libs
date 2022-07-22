@@ -1,5 +1,5 @@
-using Kafka;
-using Kafka.Values;
+using Bankly.Sdk.Kafka;
+using Bankly.Sdk.Kafka.Values;
 using KafkaTest.Models;
 using KafkaTest.Notifications;
 using Microsoft.AspNetCore.Mvc;

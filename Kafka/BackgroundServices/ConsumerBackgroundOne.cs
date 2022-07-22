@@ -1,7 +1,7 @@
 ﻿using System;
-using Kafka.Configuration.GroupConsumers;
+using Bankly.Sdk.Kafka.Configuration.GroupConsumers;
 
-namespace Kafka.BackgroundServices
+namespace Bankly.Sdk.Kafka.BackgroundServices
 {
     internal class ConsumerBackgroundOne : ConsumerBackgroundBase<GroupConsumerConfigurationOne>
     {

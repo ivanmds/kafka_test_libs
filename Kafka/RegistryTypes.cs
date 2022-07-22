@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Kafka
+namespace Bankly.Sdk.Kafka
 {
     internal static class RegistryTypes
     {

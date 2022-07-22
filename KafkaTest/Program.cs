@@ -1,4 +1,4 @@
-using Kafka.Configuration;
+using Bankly.Sdk.Kafka.Configuration;
 using KafkaTest.Consumers;
 
 var builder = WebApplication.CreateBuilder(args);

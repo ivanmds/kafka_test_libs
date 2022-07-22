@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
-using Kafka.DefaultValues;
+using Bankly.Sdk.Kafka.DefaultValues;
 
-namespace Kafka.Values
+namespace Bankly.Sdk.Kafka.Values
 {
     public class HeaderValue
     {

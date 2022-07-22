@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace Kafka.Consumers
+namespace Bankly.Sdk.Kafka.Consumers
 {
     internal interface IConsumer<TMessage> where TMessage : class
     {

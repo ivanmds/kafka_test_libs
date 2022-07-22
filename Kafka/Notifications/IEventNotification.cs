@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Kafka.Notifications
+namespace Bankly.Sdk.Kafka.Notifications
 {
     public interface IEventNotification<out TData> where TData : class
     {

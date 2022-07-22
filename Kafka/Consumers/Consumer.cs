@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace Kafka.Consumers
+namespace Bankly.Sdk.Kafka.Consumers
 {
     public abstract class Consumer<TMessage> : IConsumer<TMessage>, IBeforeConsume<TMessage>, IAfterConsume<TMessage>, IErrorConsume
         where TMessage : class

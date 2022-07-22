@@ -1,4 +1,4 @@
-﻿namespace Kafka.Configuration
+﻿namespace Bankly.Sdk.Kafka.Configuration
 {
     public class KafkaConnection
     {

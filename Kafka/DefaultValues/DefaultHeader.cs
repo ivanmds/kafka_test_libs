@@ -1,4 +1,4 @@
-﻿namespace Kafka.DefaultValues
+﻿namespace Bankly.Sdk.Kafka.DefaultValues
 {
     internal class DefaultHeader
     {

@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 
-namespace Kafka.Configuration
+namespace Bankly.Sdk.Kafka.Configuration
 {
     public static class KafkaConfiguration
     {

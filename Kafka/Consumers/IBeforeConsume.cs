@@ -1,4 +1,4 @@
-﻿namespace Kafka.Consumers
+﻿namespace Bankly.Sdk.Kafka.Consumers
 {
     internal interface IBeforeConsume<TMessage> where TMessage : class
     {

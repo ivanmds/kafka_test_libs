@@ -1,4 +1,4 @@
-﻿using Kafka.Notifications;
+﻿using Bankly.Sdk.Kafka.Notifications;
 using KafkaTest.Models;
 
 namespace KafkaTest.Notifications

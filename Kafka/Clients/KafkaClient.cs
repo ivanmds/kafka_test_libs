@@ -2,13 +2,13 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Confluent.Kafka;
-using Kafka.Configuration;
-using Kafka.DefaultValues;
-using Kafka.Notifications;
-using Kafka.Values;
+using Bankly.Sdk.Kafka.Configuration;
+using Bankly.Sdk.Kafka.DefaultValues;
+using Bankly.Sdk.Kafka.Notifications;
+using Bankly.Sdk.Kafka.Values;
 using Newtonsoft.Json;
 
-namespace Kafka.Clients
+namespace Bankly.Sdk.Kafka.Clients
 {
     public class KafkaClient : IKafkaClient
     {

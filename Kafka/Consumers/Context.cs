@@ -1,6 +1,6 @@
-﻿using Kafka.Values;
+﻿using Bankly.Sdk.Kafka.Values;
 
-namespace Kafka.Consumers
+namespace Bankly.Sdk.Kafka.Consumers
 {
     public class Context
     {

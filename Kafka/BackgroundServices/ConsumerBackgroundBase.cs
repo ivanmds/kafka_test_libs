@@ -3,15 +3,15 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Confluent.Kafka;
-using Kafka.Configuration.GroupConsumers;
-using Kafka.Consumers;
-using Kafka.DefaultValues;
-using Kafka.Values;
+using Bankly.Sdk.Kafka.Configuration.GroupConsumers;
+using Bankly.Sdk.Kafka.Consumers;
+using Bankly.Sdk.Kafka.DefaultValues;
+using Bankly.Sdk.Kafka.Values;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 
-namespace Kafka.BackgroundServices
+namespace Bankly.Sdk.Kafka.BackgroundServices
 {
     internal class ConsumerBackgroundBase<TGroupConsumerConfiguration> : BackgroundService
         where TGroupConsumerConfiguration : GroupConsumerConfigurationBase

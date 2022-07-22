@@ -1,4 +1,4 @@
-﻿namespace Kafka.Configuration.GroupConsumers
+﻿namespace Bankly.Sdk.Kafka.Configuration.GroupConsumers
 {
     internal class GroupConsumerConfigurationFour : GroupConsumerConfigurationBase
     {

@@ -1,4 +1,4 @@
-﻿namespace Kafka
+﻿namespace Bankly.Sdk.Kafka
 {
     public class ProduceResult
     {

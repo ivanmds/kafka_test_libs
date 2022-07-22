@@ -1,9 +1,9 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
-using Kafka.Notifications;
-using Kafka.Values;
+using Bankly.Sdk.Kafka.Notifications;
+using Bankly.Sdk.Kafka.Values;
 
-namespace Kafka
+namespace Bankly.Sdk.Kafka
 {
     public interface IProducerMessage
     {

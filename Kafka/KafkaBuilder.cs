@@ -1,7 +1,7 @@
-﻿using Kafka.Clients;
-using Kafka.Configuration;
+﻿using Bankly.Sdk.Kafka.Clients;
+using Bankly.Sdk.Kafka.Configuration;
 
-namespace Kafka
+namespace Bankly.Sdk.Kafka
 {
     public class KafkaBuilder
     {

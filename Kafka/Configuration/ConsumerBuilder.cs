@@ -1,9 +1,9 @@
-﻿using Kafka.BackgroundServices;
-using Kafka.Configuration.GroupConsumers;
-using Kafka.DefaultValues;
+﻿using Bankly.Sdk.Kafka.BackgroundServices;
+using Bankly.Sdk.Kafka.Configuration.GroupConsumers;
+using Bankly.Sdk.Kafka.DefaultValues;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Kafka.Configuration
+namespace Bankly.Sdk.Kafka.Configuration
 {
     public class ConsumerBuilder
     {
