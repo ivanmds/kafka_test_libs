@@ -29,6 +29,55 @@ namespace Kafka.Configuration
                 _services.AddSingleton(GroupConsumerConfigurationOne.Create(_listenerConfiguration));
                 _services.AddHostedService<ConsumerBackgroundOne>();
             }
+            else if (_numGroupConumer == 2)
+            {
+                _services.AddSingleton(GroupConsumerConfigurationTwo.Create(_listenerConfiguration));
+                _services.AddHostedService<ConsumerBackgroundTwo>();
+            }
+            else if (_numGroupConumer == 3)
+            {
+                _services.AddSingleton(GroupConsumerConfigurationThree.Create(_listenerConfiguration));
+                _services.AddHostedService<ConsumerBackgroundThree>();
+            }
+            else if (_numGroupConumer == 4)
+            {
+                _services.AddSingleton(GroupConsumerConfigurationFour.Create(_listenerConfiguration));
+                _services.AddHostedService<ConsumerBackgroundFour>();
+            }
+            else if (_numGroupConumer == 5)
+            {
+                _services.AddSingleton(GroupConsumerConfigurationFive.Create(_listenerConfiguration));
+                _services.AddHostedService<ConsumerBackgroundFive>();
+            }
+            else if (_numGroupConumer == 6)
+            {
+                _services.AddSingleton(GroupConsumerConfigurationSix.Create(_listenerConfiguration));
+                _services.AddHostedService<ConsumerBackgroundSix>();
+            }
+            else if (_numGroupConumer == 7)
+            {
+                _services.AddSingleton(GroupConsumerConfigurationSeven.Create(_listenerConfiguration));
+                _services.AddHostedService<ConsumerBackgroundSeven>();
+            }
+            else if (_numGroupConumer == 8)
+            {
+                _services.AddSingleton(GroupConsumerConfigurationEight.Create(_listenerConfiguration));
+                _services.AddHostedService<ConsumerBackgroundEight>();
+            }
+            else if (_numGroupConumer == 9)
+            {
+                _services.AddSingleton(GroupConsumerConfigurationNine.Create(_listenerConfiguration));
+                _services.AddHostedService<ConsumerBackgroundNine>();
+            }
+            else if (_numGroupConumer == 10)
+            {
+                _services.AddSingleton(GroupConsumerConfigurationTen.Create(_listenerConfiguration));
+                _services.AddHostedService<ConsumerBackgroundTen>();
+            }
+            else
+            {
+                throw new System.Exception("Limit group consumer are ten");
+            }
 
             return this;
         }

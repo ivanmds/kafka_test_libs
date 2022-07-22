@@ -1,6 +1,5 @@
 using Kafka.Configuration;
 using KafkaTest.Consumers;
-using KafkaTest.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,22 +15,11 @@ builder.Services.AddSwaggerGen();
 var consumerBuilder = builder.Services.AddKafka(KafkaConnection.Create("localhost:9092"));
 
 consumerBuilder.CreateListener("bankly.event.customers", "event_customer")
-    .AddConsumer<SimpleConsumer>("CUSTOMER_WAS_CREATED", { retries = [ 1, 3, 5] })
+    .AddConsumer<SimpleConsumer>("CUSTOMER_WAS_CREATED")
     .AddConsumer<SecondConsumer>("CUSTOMER_WAS_UPDATED");
 
-
-
-"retry_1.event_customer.bankly.event.customers"
-"retry_3.event_customer.bankly.event.customers"
-"retry_5.event_customer.bankly.event.customers"
-"dlq.event_customer.bankly.event.customers"
-
-
-
-//consumerBuilder.CreateListener("test.temp", "test_consumer_2")
-//    .AddConsumer<SecondConsumer>();
-
-
+consumerBuilder.CreateListener("test.temp", "test_consumer_2")
+    .AddConsumer<SecondConsumer>();
 
 var app = builder.Build();
 
