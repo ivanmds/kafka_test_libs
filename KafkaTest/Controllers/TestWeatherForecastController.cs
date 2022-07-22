@@ -32,7 +32,7 @@ namespace KafkaTest.Controllers
             header.AddCorrelationId(Guid.NewGuid().ToString());
 
             var notification = GetCustomerNotification();
-            await _producerMessage.ProduceNotificationAsync("bankly.event.customers", notification.EntityId, notification);
+            await _producerMessage.ProduceNotificationAsync("bankly.event.customers", notification.EntityId, notification, header);
 
             return Enumerable.Range(1, 5).Select(index => new WeatherForecast
             {
