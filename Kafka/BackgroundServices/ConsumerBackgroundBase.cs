@@ -70,7 +70,13 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                             {
                                 _consumer.Commit();
 
-                                var skipTopicName = GetTopicNameSkiped(_consumerConfiguration.ListenerConfiguration.GroupId, _consumerConfiguration.ListenerConfiguration.TopicName);
+                                var skippedConsumer = scope.ServiceProvider.GetService<ISkippedMessage>();
+                                if(skippedConsumer != null)
+                                {
+                                    await skippedConsumer.AlertAsync(context, msgBody);
+                                }
+
+                                var skipTopicName = GetTopicNameSkipped(_consumerConfiguration.ListenerConfiguration.GroupId, _consumerConfiguration.ListenerConfiguration.TopicName);
                                 await _producerMessage.ProduceAsync(skipTopicName, new { Message = msgBody }, header, stoppingToken);
                             }
                             else
@@ -127,9 +133,9 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
             return headerValue;
         }
 
-        private string GetTopicNameSkiped(string groupId, string currentTopicName)
+        private string GetTopicNameSkipped(string groupId, string currentTopicName)
         {
-            return $"skip.{groupId}.{currentTopicName}";
+            return $"skipped.{groupId}.{currentTopicName}";
         }
 
         private string GetTopicNameDeadLetter(string groupId, string currentTopicName)

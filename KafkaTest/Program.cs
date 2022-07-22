@@ -15,6 +15,7 @@ builder.Services.AddSwaggerGen();
 var consumerBuilder = builder.Services.AddKafka(KafkaConnection.Create("localhost:9092"));
 
 consumerBuilder.CreateListener("bankly.event.customers", "event_customer")
+    .AddSkippedMessage<SkippedMessage>()
     .AddConsumer<CustomerCreatedConsumer>("CUSTOMER_WAS_CREATED")
     .AddConsumer<CustomerUpdatedConsumer>("CUSTOMER_WAS_UPDATED");
 

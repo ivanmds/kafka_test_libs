@@ -1,5 +1,6 @@
 ﻿using Bankly.Sdk.Kafka.BackgroundServices;
 using Bankly.Sdk.Kafka.Configuration.GroupConsumers;
+using Bankly.Sdk.Kafka.Consumers;
 using Bankly.Sdk.Kafka.DefaultValues;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -16,6 +17,13 @@ namespace Bankly.Sdk.Kafka.Configuration
         {
             _services = services;
             _kafkaBuilder = kafkaBuilder;
+        }
+
+        public ConsumerBuilder AddSkippedMessage<TSkippedMessage>()
+            where TSkippedMessage : ISkippedMessage
+        {
+            _services.AddSingleton(typeof(ISkippedMessage), typeof(TSkippedMessage));
+            return this;
         }
 
         public ConsumerBuilder CreateListener(string topicName, string groupId)
