@@ -7,11 +7,22 @@ namespace Kafka
 {
     public interface IProducerMessage
     {
-        Task ProduceAsync(string topicName, object message, CancellationToken cancellationToken = default);
-        Task ProduceAsync(string topicName, string key, object message, CancellationToken cancellationToken = default);
-        Task ProduceAsync(string topicName, object message, HeaderValue? header = null, CancellationToken cancellationToken = default);
-        Task ProduceAsync(string topicName, string key, object message, HeaderValue? header = null, CancellationToken cancellationToken = default);
-        Task ProduceAsync<T>(string topicName, string key, IEventNotification<T> eventMessage, HeaderValue? header = null, CancellationToken cancellationToken = default)
-            where T : class;
+        Task<ProduceResult> ProduceAsync<TMessage>(string topicName, TMessage message, CancellationToken cancellationToken = default)
+            where TMessage : class;
+
+        Task<ProduceResult> ProduceAsync<TMessage>(string topicName, string key, TMessage message, CancellationToken cancellationToken = default)
+            where TMessage : class;
+
+        Task<ProduceResult> ProduceAsync<TMessage>(string topicName, TMessage message, HeaderValue header, CancellationToken cancellationToken = default)
+            where TMessage : class;
+
+        Task<ProduceResult> ProduceAsync<TMessage>(string topicName, string key, TMessage message, HeaderValue header, CancellationToken cancellationToken = default)
+            where TMessage : class;
+
+        Task<ProduceResult> ProduceAsync<TMessage>(string topicName, string key, IEventNotification<TMessage> eventMessage, CancellationToken cancellationToken = default)
+            where TMessage : class;
+
+        Task<ProduceResult> ProduceAsync<TMessage>(string topicName, string key, IEventNotification<TMessage> eventMessage, HeaderValue header, CancellationToken cancellationToken = default)
+            where TMessage : class;        
     }
 }

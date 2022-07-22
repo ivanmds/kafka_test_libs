@@ -25,16 +25,45 @@ namespace Kafka.Clients
             _kafkaProducer = new ProducerBuilder<string, string>(producerConfig).Build();
         }
 
-        public async Task ProduceAsync(string topicName, string key, object message, CancellationToken cancellationToken)
-            => await ProduceAsync(topicName, key, message, null, cancellationToken);
+        public async Task<ProduceResult> ProduceAsync<TMessage>(string topicName, TMessage message, CancellationToken cancellationToken = default) 
+            where TMessage : class 
+            => await ProduceMessageAsync(topicName, null, message, null, cancellationToken);
 
-        public async Task ProduceAsync(string topicName, string key, object message, HeaderValue? header, CancellationToken cancellationToken)
+        public async Task<ProduceResult> ProduceAsync<TMessage>(string topicName, string key, TMessage message, CancellationToken cancellationToken = default) 
+            where TMessage : class
+            => await ProduceMessageAsync(topicName, key, message, null, cancellationToken);
+
+        public async Task<ProduceResult> ProduceAsync<TMessage>(string topicName, TMessage message, HeaderValue header, CancellationToken cancellationToken = default)
+            where TMessage : class
+            => await ProduceMessageAsync(topicName, null, message, header, cancellationToken);
+
+        public async Task<ProduceResult> ProduceAsync<TMessage>(string topicName, string key, TMessage message, HeaderValue header, CancellationToken cancellationToken = default) where TMessage : class
+            => await ProduceMessageAsync(topicName, key, message, header, cancellationToken);
+
+        public async Task<ProduceResult> ProduceAsync<TMessage>(string topicName, string key, IEventNotification<TMessage> eventMessage, CancellationToken cancellationToken = default)
+            where TMessage : class
+            => await ProduceMessageAsync(topicName, key, eventMessage, null, cancellationToken);
+        
+
+        public async Task<ProduceResult> ProduceAsync<TMessage>(string topicName, string key, IEventNotification<TMessage> eventMessage, HeaderValue header, CancellationToken cancellationToken = default) 
+            where TMessage : class
+            => await ProduceMessageAsync(topicName, key, eventMessage, header, cancellationToken);
+
+
+
+
+
+        private async Task<ProduceResult> ProduceMessageAsync<TMessage>(string topicName, string? key, TMessage message, HeaderValue? header, CancellationToken cancellationToken)
+           where TMessage : class
         {
             if (topicName.StartsWith("bankly.event"))
                 throw new System.Exception("Should be used the method to IEventNotification");
 
             var messageNotification = JsonConvert.SerializeObject(message, DefaultSerializerSettings.JsonSettings);
-            var kafkaMessage = new Message<string, string> { Key = key, Value = messageNotification };
+
+            var kafkaMessage = new Message<string, string> { Value = messageNotification };
+            if (string.IsNullOrEmpty(key) is false)
+                kafkaMessage.Key = key;
 
             header ??= new HeaderValue();
 
@@ -50,11 +79,13 @@ namespace Kafka.Clients
                 }
             }
 
-            await _kafkaProducer.ProduceAsync(topicName, kafkaMessage, cancellationToken);
+            var result = await _kafkaProducer.ProduceAsync(topicName, kafkaMessage, cancellationToken);
+
+            return ProduceResult.Create(result.Status == PersistenceStatus.Persisted);
         }
 
-        public async Task ProduceAsync<T>(string topicName, string key, IEventNotification<T> eventMessage, HeaderValue? header, CancellationToken cancellationToken)
-            where T : class
+        private async Task<ProduceResult> ProduceMessageAsync<TMessage>(string topicName, string key, IEventNotification<TMessage> eventMessage, HeaderValue? header, CancellationToken cancellationToken)
+           where TMessage : class
         {
             if (!topicName.StartsWith("bankly.event"))
                 throw new System.Exception("The topic name should be started with bankly.event");
@@ -76,7 +107,8 @@ namespace Kafka.Clients
             }
 
 
-            await _kafkaProducer.ProduceAsync(topicName, kafkaMessage, cancellationToken);
+            var result = await _kafkaProducer.ProduceAsync(topicName, kafkaMessage, cancellationToken);
+            return ProduceResult.Create(result.Status == PersistenceStatus.Persisted);
         }
     }
 }
