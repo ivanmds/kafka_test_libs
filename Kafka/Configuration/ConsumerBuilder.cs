@@ -23,7 +23,6 @@ namespace Kafka.Configuration
             _numGroupConumer++;
             _listenerConfiguration = ListenerConfiguration.Create(topicName, groupId, _kafkaBuilder);
 
-
             if (_numGroupConumer == 1)
             {
                 _services.AddSingleton(GroupConsumerConfigurationOne.Create(_listenerConfiguration));
@@ -76,7 +75,7 @@ namespace Kafka.Configuration
             }
             else
             {
-                throw new System.Exception("Limit group consumer are ten");
+                throw new System.Exception("GroupId maximum is ten");
             }
 
             return this;

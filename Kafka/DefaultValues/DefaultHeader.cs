@@ -7,5 +7,6 @@
         public const string KeyResponseToTopic = "response-to-topic";
         public const string KeyEventName = "event-notification-name";
         public const string KeyDefaultEvenName = "default";
+        public const string KeyAnswersTopic = "answers-topic";
     }
 }

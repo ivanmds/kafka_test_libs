@@ -1,28 +1,28 @@
 ﻿using Kafka.Consumers;
-using KafkaTest.Models;
+using KafkaTest.Notifications;
 
 namespace KafkaTest.Consumers
 {
-    public class SimpleConsumer : Consumer<Customer>
+    public class CustomerCreatedConsumer : Consumer<CustomerNotification>
     {
-        private readonly ILogger<SimpleConsumer> _logger;
+        private readonly ILogger<CustomerCreatedConsumer> _logger;
 
-        public SimpleConsumer(ILogger<SimpleConsumer> logger)
+        public CustomerCreatedConsumer(ILogger<CustomerCreatedConsumer> logger)
         {
             _logger = logger;
         }
 
-        public override void BeforeConsume(Context context, Customer message)
+        public override void BeforeConsume(Context context, CustomerNotification message)
         {
             Console.WriteLine("before simple consumer " + message.Name);
         }
 
-        public override async Task ConsumeAsync(Context context, Customer message)
+        public override async Task ConsumeAsync(Context context, CustomerNotification message)
         {
             _logger.LogInformation("simple consumer " + message.Name);
         }
 
-        public override void AfterConsume(Context context, Customer message)
+        public override void AfterConsume(Context context, CustomerNotification message)
         {
             Console.WriteLine("after simple consumer " + message.Name);
         }

@@ -1,6 +1,7 @@
 using Kafka;
-using Kafka.Notifications;
+using Kafka.Values;
 using KafkaTest.Models;
+using KafkaTest.Notifications;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KafkaTest.Controllers
@@ -27,8 +28,11 @@ namespace KafkaTest.Controllers
         [HttpGet(Name = "GetTest")]
         public async Task<IEnumerable<WeatherForecast>> GetTest()
         {
-            var customer = GetCustomerNotification();
-            await _producerMessage.ProduceAsync("bankly.event.customers", "001", customer);
+            var header = HeaderValue.Create();
+            header.AddCorrelationId(Guid.NewGuid().ToString());
+
+            var notification = GetCustomerNotification();
+            await _producerMessage.ProduceNotificationAsync("bankly.event.customers", notification.EntityId, notification);
 
             return Enumerable.Range(1, 5).Select(index => new WeatherForecast
             {
@@ -71,7 +75,7 @@ namespace KafkaTest.Controllers
             var notification = new CustomerNotification();
             var customer = GetCustomer();
             
-            notification.Name = refer % 2 == 0 ? "CUSTOMER_WAS_CREATED" : "CUSTOMER_WAS_UPDATED";
+            notification.Name = refer % 2 == 0 ? "CUSTOMER_WAS_CREATED" : "CUSTOMER_WAS_UPDATED_2";
             notification.Timestamp = DateTime.Now;
             notification.Data = customer;
             notification.EntityId = customer.DocumentNumber;
@@ -83,22 +87,5 @@ namespace KafkaTest.Controllers
             return notification;
         }
 
-    }
-
-    public class CustomerNotification : IEventNotification<Customer>
-    {
-        public string EntityId { get; set; }
-
-        public string CompanyKey { get; set; }
-
-        public string Context { get; set; }
-
-        public string Name { get; set; }
-
-        public DateTime Timestamp { get; set; }
-
-        public IDictionary<string, object> Metadata { get; set; }
-
-        public Customer Data { get; set; }
     }
 }

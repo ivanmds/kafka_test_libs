@@ -40,16 +40,13 @@ namespace Kafka.Clients
         public async Task<ProduceResult> ProduceAsync<TMessage>(string topicName, string key, TMessage message, HeaderValue header, CancellationToken cancellationToken = default) where TMessage : class
             => await ProduceMessageAsync(topicName, key, message, header, cancellationToken);
 
-        public async Task<ProduceResult> ProduceAsync<TMessage>(string topicName, string key, IEventNotification<TMessage> eventMessage, CancellationToken cancellationToken = default)
+        public async Task<ProduceResult> ProduceNotificationAsync<TMessage>(string topicName, string key, IEventNotification<TMessage> eventMessage, CancellationToken cancellationToken = default)
             where TMessage : class
             => await ProduceMessageAsync(topicName, key, eventMessage, null, cancellationToken);
-        
 
-        public async Task<ProduceResult> ProduceAsync<TMessage>(string topicName, string key, IEventNotification<TMessage> eventMessage, HeaderValue header, CancellationToken cancellationToken = default) 
+        public async Task<ProduceResult> ProduceNotificationAsync<TMessage>(string topicName, string key, IEventNotification<TMessage> eventMessage, HeaderValue header, CancellationToken cancellationToken = default) 
             where TMessage : class
             => await ProduceMessageAsync(topicName, key, eventMessage, header, cancellationToken);
-
-
 
 
 

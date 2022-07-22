@@ -13,30 +13,30 @@ namespace Kafka.Values
         }
 
         public void AddCorrelationId(string value)
-        {
-            PutKeyValue(KeyValue.Create(DefaultHeader.KeyCorrelationId, value));
-        }
+            => PutKeyValue(KeyValue.Create(DefaultHeader.KeyCorrelationId, value));
+
+        public string GetCorrelationId()
+          => GetValue(DefaultHeader.KeyCorrelationId);
 
         public void AddIsNotification()
-        {
-            PutKeyValue(KeyValue.Create(DefaultHeader.KeyIsNotification, "true"));
-        }
-
+            => PutKeyValue(KeyValue.Create(DefaultHeader.KeyIsNotification, "true"));
+        
         public bool IsNotification()
-        {
-            return _header.ContainsKey(DefaultHeader.KeyIsNotification);
-        }
+           => _header.ContainsKey(DefaultHeader.KeyIsNotification);
 
+        public void AddAnswersTopic(string topicName)
+            => PutKeyValue(KeyValue.Create(DefaultHeader.KeyAnswersTopic, topicName));
+
+        public string GetAnswersTopic()
+            => GetValue(DefaultHeader.KeyAnswersTopic);
+       
         public void AddEventName(string eventName)
-        {
-            PutKeyValue(KeyValue.Create(DefaultHeader.KeyEventName, eventName));
-        }
+            => PutKeyValue(KeyValue.Create(DefaultHeader.KeyEventName, eventName));
 
         public string GetEventName()
         {
-            var eventName = string.Empty;
-            _header.TryGetValue(DefaultHeader.KeyEventName, out eventName);
-            
+            var eventName = GetValue(DefaultHeader.KeyEventName);
+
             if (string.IsNullOrWhiteSpace(eventName))
                 eventName = DefaultHeader.KeyDefaultEvenName;
 
@@ -74,6 +74,16 @@ namespace Kafka.Values
 
         public static HeaderValue Create()
             => new HeaderValue();
+
+        private string GetValue(string key)
+        {
+            var value = string.Empty;
+
+            if (_header.ContainsKey(key))
+                value = _header[key];
+
+            return value;
+        }
     }
 
     public class KeyValue

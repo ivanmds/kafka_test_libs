@@ -20,9 +20,12 @@ namespace Kafka
                 _registerConsumer.Add(key, consumer);
         }
 
-        public static Type Recover(string key)
+        public static Type? Recover(string key)
         {
-            return _registerConsumer[key];
+            if (_registerConsumer.ContainsKey(key))
+                return _registerConsumer[key];
+
+            return null;
         }
     }
 }
