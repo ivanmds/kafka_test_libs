@@ -7,7 +7,12 @@ namespace KafkaTest.Consumers
     {
         public override async Task ConsumeAsync(Context context, CustomerNotification message)
         {
-            Console.WriteLine(message);
+            throw new Exception("Test");
+        }
+
+        public override void ErrorConsume(Context context, Exception ex)
+        {
+            base.ErrorConsume(context, ex);
         }
     }
 }

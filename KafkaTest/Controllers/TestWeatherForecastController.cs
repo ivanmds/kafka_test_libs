@@ -75,7 +75,7 @@ namespace KafkaTest.Controllers
             var notification = new CustomerNotification();
             var customer = GetCustomer();
             
-            notification.Name = refer % 2 == 0 ? "CUSTOMER_WAS_CREATED" : "CUSTOMER_WAS_UPDATED_2";
+            notification.Name = refer % 2 == 0 ? "CUSTOMER_WAS_CREATED" : "CUSTOMER_WAS_UPDATED";
             notification.Timestamp = DateTime.Now;
             notification.Data = customer;
             notification.EntityId = customer.DocumentNumber;

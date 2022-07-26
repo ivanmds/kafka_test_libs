@@ -27,7 +27,7 @@ namespace KafkaTest.Consumers
             Console.WriteLine("after simple consumer " + message.Name);
         }
 
-        public override void ErrorConsume(Exception ex)
+        public override void ErrorConsume(Context context, Exception ex)
         {
             Console.WriteLine("error: " + ex.Message);
         }

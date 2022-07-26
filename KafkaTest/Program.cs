@@ -11,16 +11,19 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 
-
 var consumerBuilder = builder.Services.AddKafka(KafkaConnection.Create("localhost:9092"));
 
-consumerBuilder.CreateListener("bankly.event.customers", "event_customer")
+var retry = RetryConfiguration.Create(RetryTime.Create(2), RetryTime.Create(5));
+
+consumerBuilder.CreateListener("bankly.event.customers", "event_customer", retry)
     .AddSkippedMessage<SkippedMessage>()
     .AddConsumer<CustomerCreatedConsumer>("CUSTOMER_WAS_CREATED")
     .AddConsumer<CustomerUpdatedConsumer>("CUSTOMER_WAS_UPDATED");
 
 consumerBuilder.CreateListener("test.temp", "anothers_consumer")
     .AddConsumer<AnotherConsumer>();
+
+
 
 var app = builder.Build();
 

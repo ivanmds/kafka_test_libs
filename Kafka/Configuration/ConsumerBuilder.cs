@@ -26,10 +26,10 @@ namespace Bankly.Sdk.Kafka.Configuration
             return this;
         }
 
-        public ConsumerBuilder CreateListener(string topicName, string groupId)
+        public ConsumerBuilder CreateListener(string topicName, string groupId, RetryConfiguration? retryConfiguration = null)
         {
             _numGroupConumer++;
-            _listenerConfiguration = ListenerConfiguration.Create(topicName, groupId, _kafkaBuilder);
+            _listenerConfiguration = ListenerConfiguration.Create(topicName, groupId, _kafkaBuilder, retryConfiguration);
 
             if (_numGroupConumer == 1)
             {
@@ -83,7 +83,7 @@ namespace Bankly.Sdk.Kafka.Configuration
             }
             else
             {
-                throw new System.Exception("GroupId maximum is ten");
+                throw new System.Exception("Total groupId maximum is ten");
             }
 
             return this;
@@ -95,7 +95,7 @@ namespace Bankly.Sdk.Kafka.Configuration
             var consumerKey = GroupConsumerConfigurationBase.GetConsumerKey(_listenerConfiguration.GroupId, eventName);
             var consumerType = typeof(TConsumer);
 
-            //Add validation to add twice the same consumer
+            //Add validation when add twice the same consumer
             RegistryTypes.Register(consumerKey, consumerType);
             _services.AddSingleton(consumerType);
 

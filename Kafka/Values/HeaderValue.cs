@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Bankly.Sdk.Kafka.DefaultValues;
 
 namespace Bankly.Sdk.Kafka.Values
@@ -32,6 +33,45 @@ namespace Bankly.Sdk.Kafka.Values
        
         public void AddEventName(string eventName)
             => PutKeyValue(KeyValue.Create(DefaultHeader.KeyEventName, eventName));
+
+        public void AddWillRetry(bool value)
+            => PutKeyValue(KeyValue.Create(DefaultHeader.KeyWillRetry, value.ToString()));
+
+        public bool GetWillRetry()
+        {
+            var value = GetValue(DefaultHeader.KeyWillRetry);
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
+
+            return bool.Parse(value);
+        }
+
+        public void AddRetryAt(int minute, int attempt)
+        {
+            var retryAt = DateTimeOffset.UtcNow.AddMinutes(minute).ToUnixTimeMilliseconds();
+            PutKeyValue(KeyValue.Create(DefaultHeader.KeyRetryAt, retryAt.ToString()));
+            PutKeyValue(KeyValue.Create(DefaultHeader.KeyCurrentAttempt, attempt.ToString()));
+        }
+
+        public int GetRetryAt()
+        {
+            var value = GetValue(DefaultHeader.KeyRetryAt);
+            if (string.IsNullOrWhiteSpace(value))
+                return 0;
+
+            var retryWhen = long.Parse(value);
+            var dtNowMilliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            return (int)(retryWhen - dtNowMilliseconds);
+        }
+
+        public int GetCurrentAttempt()
+        {
+            var value = GetValue(DefaultHeader.KeyCurrentAttempt);
+            if (string.IsNullOrWhiteSpace(value))
+                return 0;
+
+            return int.Parse(value);
+        }
 
         public string GetEventName()
         {
@@ -102,5 +142,10 @@ namespace Bankly.Sdk.Kafka.Values
 
         public static KeyValue Create(string key, string value)
             => new KeyValue(key, value);
+
+        internal static KeyValue Create(object keyWillRetry)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
