@@ -5,7 +5,7 @@ namespace Bankly.Sdk.Kafka.Configuration
 {
     public static class KafkaConfiguration
     {
-        public static ConsumerBuilder AddKafka(this IServiceCollection services, KafkaConnection kafkaConnection)
+        public static ConsumerConfiguration AddKafka(this IServiceCollection services, KafkaConnection kafkaConnection)
         {
             var kafkaBuilder = KafkaBuilder.Create(kafkaConnection);
 
@@ -16,7 +16,7 @@ namespace Bankly.Sdk.Kafka.Configuration
             var kafkaAdminClient = new KafkaAdminClient(kafkaConnection);
             services.AddSingleton((IKafkaAdminClient)kafkaAdminClient);
 
-            var consumerBuilder = new ConsumerBuilder(services, kafkaBuilder);
+            var consumerBuilder = new ConsumerConfiguration(services, kafkaBuilder);
             return consumerBuilder;
         }
     }

@@ -38,8 +38,6 @@
         public void SetSourceTopicName(string sourceTopicName)
             => _sourceTopicName = sourceTopicName;
 
-        public static string GetRetryTopicName(string currentTopic, string groupId, int timeMinutes)
-            => $"retry_{timeMinutes}s.{groupId}.{currentTopic}";
 
         public static string GetConsumerKey(string groupId, string eventName)
         {

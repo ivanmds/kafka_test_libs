@@ -73,17 +73,23 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                                 }
                                 catch (Exception ex)
                                 {
-                                    //if (listenerConfiguration.RetryConfiguration?.First != null && header.GetCurrentAttempt() == 0)
-                                    //{
-                                    //    var retryTopicName = ListenerConfiguration.GetRetryTopicName(
-                                    //        listenerConfiguration.SourceTopicName,
-                                    //        listenerConfiguration.GroupId,
-                                    //        listenerConfiguration.RetryConfiguration.First.Minute);
+                                    var retryConfig = _listenerConfiguration.RetryConfiguration;
 
-                                    //    header.AddRetryAt(listenerConfiguration.RetryConfiguration.First.Minute, 1);
-                                    //    header.AddWillRetry(true);
-                                    //    await producerMessage.ProduceAsync(retryTopicName, msgParsed, header, stoppingToken);
-                                    //}
+                                    if (retryConfig != null && header.GetCurrentAttempt() == 0)
+                                    {
+                                        var retry = retryConfig.GetRetryTimeByAttempt(1);
+                                        if (retry != null)
+                                        {
+                                            var retryTopicName = TopicNameBuilder.GetRetryTopicName(
+                                                                                       _listenerConfiguration.SourceTopicName,
+                                                                                       _listenerConfiguration.GroupId,
+                                                                                       retry.Seconds);
+                                            header.AddRetryAt(retry.Seconds, 1);
+                                            header.AddWillRetry(true);
+                                            await _producerMessage.ProduceAsync(retryTopicName, msgParsed, header, stoppingToken);
+                                        }
+                                    }
+
                                     //else if (listenerConfiguration.RetryConfiguration?.Second != null && header.GetCurrentAttempt() == 1)
                                     //{
                                     //    var retryTopicName = ListenerConfiguration.GetRetryTopicName(
@@ -106,10 +112,10 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                                     //    header.AddWillRetry(true);
                                     //    await producerMessage.ProduceAsync(retryTopicName, msgParsed, header, stoppingToken);
                                     //}
-                                    //else
-                                    //{
-                                    //    header.AddWillRetry(false);
-                                    //}
+                                    else
+                                    {
+                                        header.AddWillRetry(false);
+                                    }
 
                                     throw ex;
                                 }
@@ -159,7 +165,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
         private object ParseMessage(Type typeMessage, string msgBody)
              => typeMessage.Name == "String" ? msgBody : JsonConvert.DeserializeObject(msgBody, typeMessage, DefaultSerializerSettings.JsonSettings);
 
-        private async Task MessageSkippedAsync(IServiceScope scope, Context context, string msgBody, HeaderValue header, CancellationToken stoppingToken) 
+        private async Task MessageSkippedAsync(IServiceScope scope, Context context, string msgBody, HeaderValue header, CancellationToken stoppingToken)
         {
             _consumer.Commit();
 

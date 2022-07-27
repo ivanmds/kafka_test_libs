@@ -46,9 +46,9 @@ namespace Bankly.Sdk.Kafka.Values
             return bool.Parse(value);
         }
 
-        public void AddRetryAt(int minute, int attempt)
+        public void AddRetryAt(int seconds, int attempt)
         {
-            var retryAt = DateTimeOffset.UtcNow.AddMinutes(minute).ToUnixTimeMilliseconds();
+            var retryAt = DateTimeOffset.UtcNow.AddSeconds(seconds).ToUnixTimeMilliseconds();
             PutKeyValue(KeyValue.Create(DefaultHeader.KeyRetryAt, retryAt.ToString()));
             PutKeyValue(KeyValue.Create(DefaultHeader.KeyCurrentAttempt, attempt.ToString()));
         }
