@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace Bankly.Sdk.Kafka.Notifications
 {
@@ -7,7 +9,10 @@ namespace Bankly.Sdk.Kafka.Notifications
     {
         string EntityId { get; }
         string CompanyKey { get; }
-        string Context { get; }
+        
+        [JsonConverter(typeof(StringEnumConverter))]
+        Context Context { get; }
+
         string Name { get; }
         DateTime Timestamp { get; }
         IDictionary<string, object> Metadata { get; }

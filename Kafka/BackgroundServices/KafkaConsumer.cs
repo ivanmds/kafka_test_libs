@@ -53,7 +53,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                         var consumerKey = _listenerConfiguration.GetConsumerKey(header.GetEventName());
                         var consumerType = RegistryTypes.Recover(consumerKey);
                         var consumerClient = consumerType == null ? null : scope.ServiceProvider.GetService(consumerType);
-                        var context = Context.Create(header);
+                        var context = ConsumeContext.Create(header);
                         var willRetry = false;
 
                         try
@@ -138,19 +138,19 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
             return (Type)methodGetTypeMessage.Invoke(consumerClient, null);
         }
 
-        private void BeforeConsume(Type consumerType, object consumerClient, Context context, object msgParsed)
+        private void BeforeConsume(Type consumerType, object consumerClient, ConsumeContext context, object msgParsed)
         {
             var methodBeforeConsume = consumerType.GetMethod("BeforeConsume");
             methodBeforeConsume.Invoke(consumerClient, new[] { context, msgParsed });
         }
 
-        private Task ConsumeAsync(Type consumerType, object consumerClient, Context context, object msgParsed)
+        private Task ConsumeAsync(Type consumerType, object consumerClient, ConsumeContext context, object msgParsed)
         {
             var methodConsume = consumerType.GetMethod("ConsumeAsync");
             return (Task)methodConsume.Invoke(consumerClient, new[] { context, msgParsed });
         }
 
-        private void AfterConsume(Type consumerType, object consumerClient, Context context, object msgParsed)
+        private void AfterConsume(Type consumerType, object consumerClient, ConsumeContext context, object msgParsed)
         {
             var methodAfterConsume = consumerType.GetMethod("AfterConsume");
             methodAfterConsume.Invoke(consumerClient, new[] { context, msgParsed });
@@ -159,7 +159,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
         private object ParseMessage(Type typeMessage, string msgBody)
              => typeMessage.Name == "String" ? msgBody : JsonConvert.DeserializeObject(msgBody, typeMessage, DefaultSerializerSettings.JsonSettings);
 
-        private async Task MessageSkippedAsync(IServiceScope scope, Context context, string msgBody, HeaderValue header, CancellationToken stoppingToken)
+        private async Task MessageSkippedAsync(IServiceScope scope, ConsumeContext context, string msgBody, HeaderValue header, CancellationToken stoppingToken)
         {
             _consumer.Commit();
 
@@ -173,7 +173,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
             await _producerMessage.ProduceAsync(skipTopicName, new { Message = msgBody }, header, stoppingToken);
         }
 
-        private async Task MessageErrorAsync(Type consumerType, object consumerClient, Context context, string msgBody, HeaderValue header, Exception ex, CancellationToken stoppingToken)
+        private async Task MessageErrorAsync(Type consumerType, object consumerClient, ConsumeContext context, string msgBody, HeaderValue header, Exception ex, CancellationToken stoppingToken)
         {
             _consumer.Commit();
             if (header.GetWillRetry() is false)

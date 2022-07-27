@@ -2,6 +2,6 @@
 {
     internal interface IAfterConsume<TMessage> where TMessage : class
     {
-        void AfterConsume(Context context, TMessage message);
+        void AfterConsume(ConsumeContext context, TMessage message);
     }
 }

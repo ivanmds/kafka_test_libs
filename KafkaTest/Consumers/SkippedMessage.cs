@@ -10,7 +10,7 @@ namespace KafkaTest.Consumers
             _logger = logger;
         }
 
-        public async Task AlertAsync(Context context, string message)
+        public async Task AlertAsync(ConsumeContext context, string message)
         {
             _logger.LogInformation($"Skipped message: {message}");
         }

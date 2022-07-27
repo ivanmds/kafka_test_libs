@@ -4,6 +4,6 @@ namespace Bankly.Sdk.Kafka.Consumers
 {
     internal interface IErrorConsume
     {
-        void ErrorConsume(Context context, Exception ex);
+        void ErrorConsume(ConsumeContext context, Exception ex);
     }
 }

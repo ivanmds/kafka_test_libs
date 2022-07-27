@@ -13,10 +13,10 @@ namespace Bankly.Sdk.Kafka.Consumers
             _typeMessage = typeof(TMessage);
         }
 
-        public virtual void BeforeConsume(Context context, TMessage message) { }
-        public abstract Task ConsumeAsync(Context context, TMessage message);
-        public virtual void AfterConsume(Context context, TMessage message) { }
-        public virtual void ErrorConsume(Context context, Exception ex) { }
+        public virtual void BeforeConsume(ConsumeContext context, TMessage message) { }
+        public abstract Task ConsumeAsync(ConsumeContext context, TMessage message);
+        public virtual void AfterConsume(ConsumeContext context, TMessage message) { }
+        public virtual void ErrorConsume(ConsumeContext context, Exception ex) { }
 
         public Type GetTypeMessage()
         {

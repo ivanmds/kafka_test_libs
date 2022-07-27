@@ -9,7 +9,7 @@ namespace KafkaTest.Notifications
 
         public string CompanyKey { get; set; }
 
-        public string Context { get; set; }
+        public Context Context { get; set; }
 
         public string Name { get; set; }
 

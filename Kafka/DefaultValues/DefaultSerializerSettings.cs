@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Bankly.Sdk.Kafka.Contracts;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
@@ -19,6 +20,7 @@ namespace Bankly.Sdk.Kafka.DefaultValues
             NullValueHandling = NullValueHandling.Ignore,
             Converters = new List<JsonConverter>
             {
+                    new CurrencyCodeConverter(),
                     new StringEnumConverter(),
                     new KeyValuePairConverter()
             }

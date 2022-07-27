@@ -1,4 +1,5 @@
 using Bankly.Sdk.Kafka;
+using Bankly.Sdk.Kafka.Notifications;
 using Bankly.Sdk.Kafka.Values;
 using KafkaTest.Models;
 using KafkaTest.Notifications;
@@ -80,7 +81,7 @@ namespace KafkaTest.Controllers
             notification.Timestamp = DateTime.Now;
             notification.Data = customer;
             notification.EntityId = customer.DocumentNumber;
-            notification.Context = "ACCOUNT";
+            notification.Context = Context.Account;
             notification.Metadata = new Dictionary<string, object>();
             notification.Metadata.Add("Test", "test");
             notification.CompanyKey = "BANKLY";

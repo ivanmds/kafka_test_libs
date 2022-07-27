@@ -2,9 +2,9 @@
 
 namespace Bankly.Sdk.Kafka.Consumers
 {
-    public class Context
+    public class ConsumeContext
     {
-        internal Context(HeaderValue header)
+        internal ConsumeContext(HeaderValue header)
         { 
             Header = header;
             IsNotification = header.IsNotification();
@@ -16,8 +16,8 @@ namespace Bankly.Sdk.Kafka.Consumers
 
         public HeaderValue Header { get; private set; }
 
-        public static Context Create(HeaderValue header)
-            => new Context(header);
+        public static ConsumeContext Create(HeaderValue header)
+            => new ConsumeContext(header);
 
         public bool IsNotification { get; private set; }
         public string ResponseTopic { get; private set; }
