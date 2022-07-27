@@ -52,7 +52,7 @@ namespace Bankly.Sdk.Kafka.Configuration
         }
 
         public ConsumerConfiguration AddConsumer<TConsumer>(string eventName = DefaultHeader.KeyDefaultEvenName)
-            where TConsumer : class
+            where TConsumer : IConsumerMessage
         {
             var consumerKey = ListenerConfiguration.GetConsumerKey(_listenerConfiguration.GroupId, eventName);
             var consumerType = typeof(TConsumer);

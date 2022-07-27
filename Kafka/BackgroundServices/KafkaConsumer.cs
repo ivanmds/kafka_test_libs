@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Bankly.Sdk.Kafka.Configuration;
 using Bankly.Sdk.Kafka.Consumers;
 using Bankly.Sdk.Kafka.DefaultValues;
+using Bankly.Sdk.Kafka.Notifications;
 using Bankly.Sdk.Kafka.Values;
 using Confluent.Kafka;
 using Microsoft.Extensions.DependencyInjection;
@@ -50,7 +51,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                         var msgBody = result.Message.Value;
                         var header = KafkaConsumerHelper.ParseHeader(result.Message.Headers);
 
-                        var consumerKey = _listenerConfiguration.GetConsumerKey(header.GetEventName());
+                        var consumerKey = _listenerConfiguration.GetConsumerKey(GetEventName(header, msgBody));
                         var consumerType = RegistryTypes.Recover(consumerKey);
                         var consumerClient = consumerType == null ? null : scope.ServiceProvider.GetService(consumerType);
                         var context = ConsumeContext.Create(header);
@@ -101,6 +102,27 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                 _logger.LogError($"Consumer from processId {processId} died");
                 _consumer.Dispose();
                 throw ex;
+            }
+        }
+
+        private string GetEventName(HeaderValue header, string msgBody)
+        {
+            try
+            {
+                if (header.IsNotification())
+                    return header.GetEventName();
+                else
+                {
+                    var msgParsed = ParseMessage(typeof(DefaultNotification), msgBody) as DefaultNotification;
+                    if (msgParsed is null)
+                        return header.GetEventName();
+
+                    return msgParsed.Name;
+                }
+            }
+            catch
+            {
+                return header.GetEventName();
             }
         }
 

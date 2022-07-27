@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Bankly.Sdk.Kafka.Consumers
 {
-    public abstract class Consumer<TMessage> : IConsumer<TMessage>, IBeforeConsume<TMessage>, IAfterConsume<TMessage>, IErrorConsume
+    public abstract class Consumer<TMessage> : IConsumer<TMessage>, IBeforeConsume<TMessage>, IAfterConsume<TMessage>, IErrorConsume, IConsumerMessage
         where TMessage : class
     {
         private readonly Type _typeMessage;
