@@ -13,7 +13,11 @@ builder.Services.AddSwaggerGen();
 
 var consumerBuilder = builder.Services.AddKafka(KafkaConnection.Create("localhost:9092"));
 
-var retry = RetryConfiguration.Create(RetryTime.Create(2), RetryTime.Create(5));
+var retry = RetryConfiguration.Create()
+    .Add(RetryTime.Create(2))
+    .Add(RetryTime.Create(15))
+    .Add(RetryTime.Create(60))
+    .Add(RetryTime.Create(120));
 
 consumerBuilder.CreateListener("bankly.event.customers", "event_customer", retry)
     .AddSkippedMessage<SkippedMessage>()
@@ -22,7 +26,6 @@ consumerBuilder.CreateListener("bankly.event.customers", "event_customer", retry
 
 consumerBuilder.CreateListener("test.temp", "anothers_consumer")
     .AddConsumer<AnotherConsumer>();
-
 
 
 var app = builder.Build();

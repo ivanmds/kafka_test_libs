@@ -1,57 +1,54 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-
-namespace Bankly.Sdk.Kafka.Configuration
+﻿namespace Bankly.Sdk.Kafka.Configuration
 {
     public class ListenerConfiguration
     {
-        private readonly List<string> _topics;
+        private readonly string _topicName;
+        private string _sourceTopicName;
         private readonly string _groupId;
         private readonly KafkaBuilder _kafkaBuilder;
         private readonly RetryConfiguration? _retryConfiguration;
-        public ListenerConfiguration(string topicName, string groupId, KafkaBuilder kafkaBuilder, RetryConfiguration? retryConfiguration)
+        private readonly RetryTime? _retryTime;
+        public ListenerConfiguration(string topicName, string groupId, KafkaBuilder kafkaBuilder, RetryConfiguration? retryConfiguration, RetryTime? retryTime = null)
         {
-            _topics = new List<string>
-            {
-                topicName
-            };
-
+            _topicName = topicName;
+            _sourceTopicName = topicName;
             _groupId = groupId;
             _kafkaBuilder = kafkaBuilder;
             _retryConfiguration = retryConfiguration;
-            SetRetryTopicName();
+            _retryTime = retryTime;
         }
 
-        public static ListenerConfiguration Create(string topicName, string groupId, KafkaBuilder kafkaBuilder, RetryConfiguration? retryConfiguration)
-            => new ListenerConfiguration(topicName, groupId, kafkaBuilder, retryConfiguration);
+        public static ListenerConfiguration Create(string topicName, string groupId, KafkaBuilder kafkaBuilder, RetryConfiguration? retryConfiguration, RetryTime? retryTime = null)
+            => new ListenerConfiguration(topicName, groupId, kafkaBuilder, retryConfiguration, retryTime);
 
-        public IReadOnlyCollection<string> Topics => _topics;
+        public string TopicName => _topicName;
+        public string SourceTopicName => _sourceTopicName;
         public string GroupId => _groupId;
         public KafkaBuilder KafkaBuilder => _kafkaBuilder;
         public RetryConfiguration? RetryConfiguration => _retryConfiguration;
+        public RetryTime? RetryTime => _retryTime;
 
-        private void SetRetryTopicName()
-        {
-            if (_retryConfiguration?.First != null)
-            {
-                var topicName = GetRetryTopicName(_topics.First(), _groupId, _retryConfiguration.First.Minute);
-                _topics.Add(topicName);
-            }
-            
-            if (_retryConfiguration?.Second != null)
-            {
-                var topicName = GetRetryTopicName(_topics.First(), _groupId, _retryConfiguration.Second.Minute);
-                _topics.Add(topicName);
-            }
 
-            if (_retryConfiguration?.Third != null)
-            {
-                var topicName = GetRetryTopicName(_topics.First(), _groupId, _retryConfiguration.Third.Minute);
-                _topics.Add(topicName);
-            }
-        }
+        public string GetConsumerKey(string eventName)
+          => GetConsumerKey(_groupId, eventName);
+
+        public string GetEventNameFromConsumerKey(string keyConsumer)
+            => keyConsumer.Replace(_groupId, "");
+
+        public void SetSourceTopicName(string sourceTopicName)
+            => _sourceTopicName = sourceTopicName;
 
         public static string GetRetryTopicName(string currentTopic, string groupId, int timeMinutes)
             => $"retry_{timeMinutes}.{groupId}.{currentTopic}";
+
+        public static string GetConsumerKey(string groupId, string eventName)
+        {
+            var sufixName = eventName;
+
+            if (string.IsNullOrWhiteSpace(sufixName))
+                sufixName = DefaultValues.DefaultHeader.KeyDefaultEvenName;
+
+            return $"{groupId}#{sufixName}";
+        }
     }
 }

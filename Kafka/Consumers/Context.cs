@@ -8,7 +8,7 @@ namespace Bankly.Sdk.Kafka.Consumers
         { 
             Header = header;
             IsNotification = header.IsNotification();
-            AnswersTopic = header.GetAnswersTopic();
+            ResponseTopic = header.GetResponseTopic();
             CorrelationId = header.GetCorrelationId();
             IsRetry = header.GetCurrentAttempt() > 0;
             WillRetry = header.GetWillRetry();
@@ -20,7 +20,7 @@ namespace Bankly.Sdk.Kafka.Consumers
             => new Context(header);
 
         public bool IsNotification { get; private set; }
-        public string AnswersTopic { get; private set; }
+        public string ResponseTopic { get; private set; }
         public string CorrelationId { get; private set; }
         public bool IsRetry { get; private set; }
         public bool WillRetry { get; private set; }

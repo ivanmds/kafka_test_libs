@@ -1,50 +1,57 @@
-﻿using System;
+﻿using System.Collections.Generic;
 
 namespace Bankly.Sdk.Kafka.Configuration
 {
     public class RetryConfiguration
     {
-        public RetryConfiguration(RetryTime first, RetryTime? second = null, RetryTime? third = null)
+        private readonly List<RetryTime> _retryTimes = new List<RetryTime>();
+
+        public RetryConfiguration Add(RetryTime retryTime)
         {
-            First = first;
-            Second = second;
+            if (_retryTimes.Count > 5)
+                throw new System.Exception("Inform until 5 retryTime");
 
-            if (second == null && third != null)
-                throw new Exception("The second field should be informed before inform the third field");
+            if (_retryTimes.Contains(retryTime))
+                throw new System.Exception($"The retryTime {retryTime.Seconds}s already informed.");
 
-            if (second != null)
-            {
-                if (second.Minute < first.Minute)
-                    throw new Exception("The second should be greater than first");
-            }
-
-            if (third != null)
-            {
-                if (third.Minute < second.Minute)
-                    throw new Exception("The third should be greater than second");
-            }
-
-            Third = third;  
+            return this;
         }
 
-        public RetryTime First { get; private set; }
-        public RetryTime? Second { get; private set; }
-        public RetryTime? Third { get; private set; }
+        public RetryTime GetRetryTimeByAttempt(int attempt)
+        {
+            if (attempt <= 0 || attempt > _retryTimes.Count)
+                throw new System.Exception("Attempt invalid");
 
-        public static RetryConfiguration Create(RetryTime first, RetryTime? second = null, RetryTime? third = null)
-            => new RetryConfiguration(first, second, third);
+            var index = attempt - 1;
+
+            return _retryTimes[index];
+        }
+
+        public IReadOnlyCollection<RetryTime> GetRetries() => _retryTimes;
+
+        public static RetryConfiguration Create()
+            => new RetryConfiguration();
     }
 
-    public class RetryTime
+    public class RetryTime : IEqualityComparer<RetryTime>
     {
-        public RetryTime(int minute)
+        public RetryTime(int seconds)
         {
-            Minute = minute;
+            Seconds = seconds;
         }
 
-        public int Minute { get; private set; }
+        public int Seconds { get; private set; }
 
-        public static RetryTime Create(int minute) 
-            => new RetryTime(minute);
+        public int GetMilliseconds => Seconds * 1000;
+
+        public static RetryTime Create(int seconds)
+            => new RetryTime(seconds);
+
+
+        public bool Equals(RetryTime x, RetryTime y)
+            => x.Seconds == y.Seconds;
+
+        public int GetHashCode(RetryTime obj)
+            => $"{obj.Seconds}".GetHashCode();
     }
 }

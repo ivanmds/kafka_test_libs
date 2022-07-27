@@ -18,12 +18,9 @@ namespace Bankly.Sdk.Kafka.Consumers
         public virtual void AfterConsume(Context context, TMessage message) { }
         public virtual void ErrorConsume(Context context, Exception ex) { }
 
-
         public Type GetTypeMessage()
         {
             return _typeMessage;
         }
-
-
     }
 }

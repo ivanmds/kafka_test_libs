@@ -30,6 +30,7 @@ namespace KafkaTest.Controllers
         {
             var header = HeaderValue.Create();
             header.AddCorrelationId(Guid.NewGuid().ToString());
+            header.AddResponseTopic(""); //responseTopic
 
             var notification = GetCustomerNotification();
             await _producerMessage.ProduceNotificationAsync("bankly.event.customers", notification.EntityId, notification, header);

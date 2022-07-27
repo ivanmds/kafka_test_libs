@@ -25,11 +25,11 @@ namespace Bankly.Sdk.Kafka.Values
         public bool IsNotification()
            => _header.ContainsKey(DefaultHeader.KeyIsNotification);
 
-        public void AddAnswersTopic(string topicName)
-            => PutKeyValue(KeyValue.Create(DefaultHeader.KeyAnswersTopic, topicName));
+        public void AddResponseTopic(string topicName)
+            => PutKeyValue(KeyValue.Create(DefaultHeader.KeyResponseTopic, topicName));
 
-        public string GetAnswersTopic()
-            => GetValue(DefaultHeader.KeyAnswersTopic);
+        public string GetResponseTopic()
+            => GetValue(DefaultHeader.KeyResponseTopic);
        
         public void AddEventName(string eventName)
             => PutKeyValue(KeyValue.Create(DefaultHeader.KeyEventName, eventName));
