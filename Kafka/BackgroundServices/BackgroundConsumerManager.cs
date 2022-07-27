@@ -18,9 +18,9 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
         private readonly List<string> _topicNames;
         private readonly IProducerMessage _producerMessage;
         private readonly IKafkaAdminClient _kafkaAdminClient;
-        private readonly ILogger _logger;
+        private readonly ILogger<BackgroundConsumerManager> _logger;
 
-        public BackgroundConsumerManager(IServiceProvider provider, IRegistryListenerService registryListenerService, IKafkaAdminClient kafkaAdminClient, ILogger logger)
+        public BackgroundConsumerManager(IServiceProvider provider, IRegistryListenerService registryListenerService, IKafkaAdminClient kafkaAdminClient, ILogger<BackgroundConsumerManager> logger)
         {
             _provider = provider;
             _registryListenerService = registryListenerService;

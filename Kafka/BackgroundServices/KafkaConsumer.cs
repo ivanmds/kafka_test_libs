@@ -37,11 +37,11 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
             try
             {
                 using var scope = _provider.CreateScope();
+                _logger.LogInformation($"Consumer from processId {processId} was started");
                 await Task.Run(async () =>
                 {
                     while (!stoppingToken.IsCancellationRequested)
                     {
-                        _logger.LogInformation($"Consumer from processId {processId} was started");
                         var result = _consumer.Consume(stoppingToken);
 
                         if (result is null)
