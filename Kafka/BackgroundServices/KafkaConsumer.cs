@@ -7,6 +7,7 @@ using Bankly.Sdk.Kafka.DefaultValues;
 using Bankly.Sdk.Kafka.Values;
 using Confluent.Kafka;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace Bankly.Sdk.Kafka.BackgroundServices
@@ -17,8 +18,9 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
         private readonly ListenerConfiguration _listenerConfiguration;
         private readonly IProducerMessage _producerMessage;
         private readonly IConsumer<string, string> _consumer;
+        private readonly ILogger _logger;
 
-        internal KafkaConsumer(IServiceProvider provider, ListenerConfiguration listenerConfiguration, IProducerMessage producerMessage)
+        internal KafkaConsumer(IServiceProvider provider, ListenerConfiguration listenerConfiguration, IProducerMessage producerMessage, ILogger logger)
         {
             _provider = provider;
             _listenerConfiguration = listenerConfiguration;
@@ -27,9 +29,10 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
             var config = KafkaConsumerHelper.GetConsumerConfig(_listenerConfiguration);
             _consumer = new ConsumerBuilder<string, string>(config).Build();
             _consumer.Subscribe(_listenerConfiguration.TopicName);
+            _logger = logger;
         }
 
-        public async Task ExecuteAsync(CancellationToken stoppingToken)
+        public async Task ExecuteAsync(string processId, CancellationToken stoppingToken)
         {
             try
             {
@@ -38,6 +41,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                 {
                     while (!stoppingToken.IsCancellationRequested)
                     {
+                        _logger.LogInformation($"Consumer from processId {processId} was started");
                         var result = _consumer.Consume(stoppingToken);
 
                         if (result is null)
@@ -50,6 +54,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                         var consumerType = RegistryTypes.Recover(consumerKey);
                         var consumerClient = consumerType == null ? null : scope.ServiceProvider.GetService(consumerType);
                         var context = Context.Create(header);
+                        var willRetry = false;
 
                         try
                         {
@@ -57,9 +62,9 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                                 await MessageSkippedAsync(scope, context, msgBody, header, stoppingToken);
                             else
                             {
-                                var sleep = header.GetRetryAt();
-                                if (sleep > 0)
-                                    await Task.Delay(sleep);
+                                var delay = header.GetRetryAt();
+                                if (delay > 0)
+                                    await Task.Delay(delay);
 
                                 var typeMessage = GetTypeMessage(consumerType, consumerClient);
                                 var msgParsed = ParseMessage(typeMessage, msgBody);
@@ -73,50 +78,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                                 }
                                 catch (Exception ex)
                                 {
-                                    var retryConfig = _listenerConfiguration.RetryConfiguration;
-
-                                    if (retryConfig != null && header.GetCurrentAttempt() == 0)
-                                    {
-                                        var retry = retryConfig.GetRetryTimeByAttempt(1);
-                                        if (retry != null)
-                                        {
-                                            var retryTopicName = TopicNameBuilder.GetRetryTopicName(
-                                                                                       _listenerConfiguration.SourceTopicName,
-                                                                                       _listenerConfiguration.GroupId,
-                                                                                       retry.Seconds);
-                                            header.AddRetryAt(retry.Seconds, 1);
-                                            header.AddWillRetry(true);
-                                            await _producerMessage.ProduceAsync(retryTopicName, msgParsed, header, stoppingToken);
-                                        }
-                                    }
-
-                                    //else if (listenerConfiguration.RetryConfiguration?.Second != null && header.GetCurrentAttempt() == 1)
-                                    //{
-                                    //    var retryTopicName = ListenerConfiguration.GetRetryTopicName(
-                                    //        listenerConfiguration.SourceTopicName,
-                                    //        listenerConfiguration.GroupId,
-                                    //        listenerConfiguration.RetryConfiguration.Second.Minute);
-
-                                    //    header.AddRetryAt(listenerConfiguration.RetryConfiguration.Second.Minute, 2);
-                                    //    header.AddWillRetry(true);
-                                    //    await producerMessage.ProduceAsync(retryTopicName, msgParsed, header, stoppingToken);
-                                    //}
-                                    //else if (listenerConfiguration.RetryConfiguration?.Third != null && header.GetCurrentAttempt() == 2)
-                                    //{
-                                    //    var retryTopicName = ListenerConfiguration.GetRetryTopicName(
-                                    //        listenerConfiguration.SourceTopicName,
-                                    //        listenerConfiguration.GroupId,
-                                    //        listenerConfiguration.RetryConfiguration.Third.Minute);
-
-                                    //    header.AddRetryAt(listenerConfiguration.RetryConfiguration.Third.Minute, 3);
-                                    //    header.AddWillRetry(true);
-                                    //    await producerMessage.ProduceAsync(retryTopicName, msgParsed, header, stoppingToken);
-                                    //}
-                                    else
-                                    {
-                                        header.AddWillRetry(false);
-                                    }
-
+                                    willRetry = await WillRetryAsync(msgParsed, header, stoppingToken);
                                     throw ex;
                                 }
 
@@ -126,6 +88,9 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                         }
                         catch (Exception ex)
                         {
+                            if (willRetry is false)
+                                header.AddWillRetry(false);
+
                             await MessageErrorAsync(consumerType, consumerClient, context, msgBody, header, ex, stoppingToken);
                         }
                     }
@@ -133,9 +98,38 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
             }
             catch (Exception ex)
             {
+                _logger.LogError($"Consumer from processId {processId} died");
                 _consumer.Dispose();
                 throw ex;
             }
+        }
+
+        private async Task<bool> WillRetryAsync(object msgParsed, HeaderValue header, CancellationToken stoppingToken)
+        {
+            var retryConfig = _listenerConfiguration.RetryConfiguration;
+            var currentAttempt = header.GetCurrentAttempt();
+            var nextAttempt = currentAttempt + 1;
+            var result = false;
+
+            if (retryConfig != null)
+            {
+                var retry = retryConfig.GetRetryTimeByAttempt(nextAttempt);
+                if (retry != null)
+                {
+                    var retryTopicName = TopicNameBuilder.GetRetryTopicName(
+                                                               _listenerConfiguration.SourceTopicName,
+                                                               _listenerConfiguration.GroupId,
+                                                               retry.Seconds);
+
+                    header.AddRetryAt(retry.Seconds, nextAttempt);
+                    header.AddWillRetry(true);
+                    await _producerMessage.ProduceAsync(retryTopicName, msgParsed, header, stoppingToken);
+
+                    result = true;
+                }
+            }
+
+            return result;
         }
 
         private Type GetTypeMessage(Type consumerType, object consumerClient)
