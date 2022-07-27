@@ -1,6 +1,6 @@
 ﻿namespace Bankly.Sdk.Kafka.Configuration
 {
-    public class ListenerConfiguration
+    internal class ListenerConfiguration
     {
         private readonly string _topicName;
         private string _sourceTopicName;
@@ -39,7 +39,7 @@
             => _sourceTopicName = sourceTopicName;
 
         public static string GetRetryTopicName(string currentTopic, string groupId, int timeMinutes)
-            => $"retry_{timeMinutes}.{groupId}.{currentTopic}";
+            => $"retry_{timeMinutes}s.{groupId}.{currentTopic}";
 
         public static string GetConsumerKey(string groupId, string eventName)
         {

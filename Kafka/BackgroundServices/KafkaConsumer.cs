@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Bankly.Sdk.Kafka.Configuration;
@@ -12,78 +11,64 @@ using Newtonsoft.Json;
 
 namespace Bankly.Sdk.Kafka.BackgroundServices
 {
-    internal static class KafkaConsumer
+    internal class KafkaConsumer
     {
-        private const int DefaultMaxPollIntervalMs = 300000;
-        public static async Task ExecuteAsync(IServiceProvider services, ListenerConfiguration listenerConfiguration, IProducerMessage producerMessage, string processkey, CancellationToken stoppingToken)
+        private readonly IServiceProvider _provider;
+        private readonly ListenerConfiguration _listenerConfiguration;
+        private readonly IProducerMessage _producerMessage;
+        private readonly IConsumer<string, string> _consumer;
+
+        internal KafkaConsumer(IServiceProvider provider, ListenerConfiguration listenerConfiguration, IProducerMessage producerMessage)
         {
-            var maxPollIntervalMs = listenerConfiguration.RetryTime is null ? DefaultMaxPollIntervalMs 
-                : listenerConfiguration.RetryTime.GetMilliseconds + DefaultMaxPollIntervalMs;
+            _provider = provider;
+            _listenerConfiguration = listenerConfiguration;
+            _producerMessage = producerMessage;
 
-            var conf = new ConsumerConfig
-            {
-                GroupId = listenerConfiguration.GroupId,
-                BootstrapServers = listenerConfiguration.KafkaBuilder.KafkaConnection.BootstrapServers,
-                AutoOffsetReset = AutoOffsetReset.Earliest,
-                EnableAutoCommit = false,
-                MaxPollIntervalMs = maxPollIntervalMs
-            };
+            var config = KafkaConsumerHelper.GetConsumerConfig(_listenerConfiguration);
+            _consumer = new ConsumerBuilder<string, string>(config).Build();
+            _consumer.Subscribe(_listenerConfiguration.TopicName);
+        }
 
-            IConsumer<string, string> kafkaConsumer = new ConsumerBuilder<string, string>(conf).Build();
-            kafkaConsumer.Subscribe(listenerConfiguration.TopicName);
-
+        public async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
             try
             {
-                using var scope = services.CreateScope();
+                using var scope = _provider.CreateScope();
                 await Task.Run(async () =>
                 {
                     while (!stoppingToken.IsCancellationRequested)
                     {
-                        var result = kafkaConsumer.Consume(stoppingToken);
+                        var result = _consumer.Consume(stoppingToken);
 
                         if (result is null)
                             continue;
 
                         var msgBody = result.Message.Value;
-                        var header = ParseHeader(result.Message.Headers);
+                        var header = KafkaConsumerHelper.ParseHeader(result.Message.Headers);
 
-                        var consumerKey = listenerConfiguration.GetConsumerKey(header.GetEventName());
+                        var consumerKey = _listenerConfiguration.GetConsumerKey(header.GetEventName());
                         var consumerType = RegistryTypes.Recover(consumerKey);
-                        var consumer = consumerType == null ? null : scope.ServiceProvider.GetService(consumerType);
+                        var consumerClient = consumerType == null ? null : scope.ServiceProvider.GetService(consumerType);
                         var context = Context.Create(header);
 
                         try
                         {
-                            if (consumer is null)
-                            {
-                                kafkaConsumer.Commit();
-
-                                var skippedConsumer = scope.ServiceProvider.GetService<ISkippedMessage>();
-                                if (skippedConsumer != null)
-                                {
-                                    await skippedConsumer.AlertAsync(context, msgBody);
-                                }
-
-                                var skipTopicName = GetTopicNameSkipped(listenerConfiguration.GroupId, listenerConfiguration.SourceTopicName);
-                                await producerMessage.ProduceAsync(skipTopicName, new { Message = msgBody }, header, stoppingToken);
-                            }
+                            if (consumerClient is null)
+                                await MessageSkippedAsync(scope, context, msgBody, header, stoppingToken);
                             else
                             {
                                 var sleep = header.GetRetryAt();
                                 if (sleep > 0)
                                     await Task.Delay(sleep);
 
-                                var methodGetTypeMessage = consumerType.GetMethod("GetTypeMessage");
-                                var typeMessage = (Type)methodGetTypeMessage.Invoke(consumer, null);
-                                var msgParsed = typeMessage.Name == "String" ? msgBody : JsonConvert.DeserializeObject(msgBody, typeMessage, DefaultSerializerSettings.JsonSettings);
+                                var typeMessage = GetTypeMessage(consumerType, consumerClient);
+                                var msgParsed = ParseMessage(typeMessage, msgBody);
 
-                                var methodBeforeConsume = consumerType.GetMethod("BeforeConsume");
-                                methodBeforeConsume.Invoke(consumer, new[] { context, msgParsed });
+                                BeforeConsume(consumerType, consumerClient, context, msgParsed);
 
                                 try
                                 {
-                                    var methodConsume = consumerType.GetMethod("ConsumeAsync");
-                                    var methodConsumeResult = (Task)methodConsume.Invoke(consumer, new[] { context, msgParsed });
+                                    var methodConsumeResult = ConsumeAsync(consumerType, consumerClient, context, msgParsed);
                                     methodConsumeResult.Wait();
                                 }
                                 catch (Exception ex)
@@ -129,57 +114,75 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                                     throw ex;
                                 }
 
-                                var methodAfterConsume = consumerType.GetMethod("AfterConsume");
-                                methodAfterConsume.Invoke(consumer, new[] { context, msgParsed });
-
-                                kafkaConsumer.Commit();
+                                AfterConsume(consumerType, consumerClient, context, msgParsed);
+                                _consumer.Commit();
                             }
                         }
                         catch (Exception ex)
                         {
-                            kafkaConsumer.Commit();
-                            if (header.GetWillRetry() is false)
-                            {
-                                var dlqTopicName = GetTopicNameDeadLetter(listenerConfiguration.GroupId, listenerConfiguration.SourceTopicName);
-                                await producerMessage.ProduceAsync(dlqTopicName, new { MessageJson = msgBody, Error = ex }, header, stoppingToken);
-                            }
-                            var methodErrorConsume = consumerType.GetMethod("ErrorConsume");
-                            methodErrorConsume.Invoke(consumer, new[] { context as object, ex });
+                            await MessageErrorAsync(consumerType, consumerClient, context, msgBody, header, ex, stoppingToken);
                         }
                     }
                 });
             }
             catch (Exception ex)
             {
-                kafkaConsumer.Dispose();
+                _consumer.Dispose();
                 throw ex;
             }
         }
 
-        private static HeaderValue ParseHeader(Headers headers)
+        private Type GetTypeMessage(Type consumerType, object consumerClient)
         {
-            var headerValue = HeaderValue.Create();
+            var methodGetTypeMessage = consumerType.GetMethod("GetTypeMessage");
+            return (Type)methodGetTypeMessage.Invoke(consumerClient, null);
+        }
 
-            if (headers is null)
-                return headerValue;
+        private void BeforeConsume(Type consumerType, object consumerClient, Context context, object msgParsed)
+        {
+            var methodBeforeConsume = consumerType.GetMethod("BeforeConsume");
+            methodBeforeConsume.Invoke(consumerClient, new[] { context, msgParsed });
+        }
 
-            foreach (var kv in headers)
+        private Task ConsumeAsync(Type consumerType, object consumerClient, Context context, object msgParsed)
+        {
+            var methodConsume = consumerType.GetMethod("ConsumeAsync");
+            return (Task)methodConsume.Invoke(consumerClient, new[] { context, msgParsed });
+        }
+
+        private void AfterConsume(Type consumerType, object consumerClient, Context context, object msgParsed)
+        {
+            var methodAfterConsume = consumerType.GetMethod("AfterConsume");
+            methodAfterConsume.Invoke(consumerClient, new[] { context, msgParsed });
+        }
+
+        private object ParseMessage(Type typeMessage, string msgBody)
+             => typeMessage.Name == "String" ? msgBody : JsonConvert.DeserializeObject(msgBody, typeMessage, DefaultSerializerSettings.JsonSettings);
+
+        private async Task MessageSkippedAsync(IServiceScope scope, Context context, string msgBody, HeaderValue header, CancellationToken stoppingToken) 
+        {
+            _consumer.Commit();
+
+            var skippedConsumer = scope.ServiceProvider.GetService<ISkippedMessage>();
+            if (skippedConsumer != null)
             {
-                var value = Encoding.Default.GetString(kv.GetValueBytes());
-                headerValue.PutKeyValue(kv.Key, value);
+                await skippedConsumer.AlertAsync(context, msgBody);
             }
 
-            return headerValue;
+            var skipTopicName = KafkaConsumerHelper.GetTopicNameSkipped(_listenerConfiguration.GroupId, _listenerConfiguration.SourceTopicName);
+            await _producerMessage.ProduceAsync(skipTopicName, new { Message = msgBody }, header, stoppingToken);
         }
 
-        private static string GetTopicNameSkipped(string groupId, string currentTopicName)
+        private async Task MessageErrorAsync(Type consumerType, object consumerClient, Context context, string msgBody, HeaderValue header, Exception ex, CancellationToken stoppingToken)
         {
-            return $"skipped.{groupId}.{currentTopicName}";
-        }
-
-        private static string GetTopicNameDeadLetter(string groupId, string currentTopicName)
-        {
-            return $"dlq.{groupId}.{currentTopicName}";
+            _consumer.Commit();
+            if (header.GetWillRetry() is false)
+            {
+                var dlqTopicName = KafkaConsumerHelper.GetTopicNameDeadLetter(_listenerConfiguration.GroupId, _listenerConfiguration.SourceTopicName);
+                await _producerMessage.ProduceAsync(dlqTopicName, new { MessageJson = msgBody, Error = ex }, header, stoppingToken);
+            }
+            var methodErrorConsume = consumerType.GetMethod("ErrorConsume");
+            methodErrorConsume.Invoke(consumerClient, new[] { context as object, ex });
         }
     }
 }

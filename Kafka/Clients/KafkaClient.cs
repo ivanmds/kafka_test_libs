@@ -7,12 +7,14 @@ using Bankly.Sdk.Kafka.DefaultValues;
 using Bankly.Sdk.Kafka.Notifications;
 using Bankly.Sdk.Kafka.Values;
 using Newtonsoft.Json;
+using System;
 
 namespace Bankly.Sdk.Kafka.Clients
 {
-    public class KafkaClient : IKafkaClient
+    public class KafkaClient : IKafkaClient, IDisposable
     {
         private readonly IProducer<string, string> _kafkaProducer;
+        private bool _disposedValue;
 
         public KafkaClient(KafkaConnection kafkaConnection)
         {
@@ -54,7 +56,7 @@ namespace Bankly.Sdk.Kafka.Clients
            where TMessage : class
         {
             if (topicName.StartsWith("bankly.event"))
-                throw new System.Exception("Should be used the method to IEventNotification");
+                throw new Exception("Should be used the method to IEventNotification");
 
             var messageNotification = JsonConvert.SerializeObject(message, DefaultSerializerSettings.JsonSettings);
 
@@ -85,7 +87,7 @@ namespace Bankly.Sdk.Kafka.Clients
            where TMessage : class
         {
             if (!topicName.StartsWith("bankly.event"))
-                throw new System.Exception("The topic name should be started with bankly.event");
+                throw new Exception("The topic name should be started with bankly.event");
 
             var messageNotification = JsonConvert.SerializeObject(eventMessage, DefaultSerializerSettings.JsonSettings);
             var kafkaMessage = new Message<string, string> { Key = key, Value = messageNotification };
@@ -106,6 +108,23 @@ namespace Bankly.Sdk.Kafka.Clients
 
             var result = await _kafkaProducer.ProduceAsync(topicName, kafkaMessage, cancellationToken);
             return ProduceResult.Create(result.Status == PersistenceStatus.Persisted);
+        }
+
+        ~KafkaClient() => Dispose(false);
+
+        public void Dispose() => Dispose(true);
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposedValue)
+            {
+                if (disposing)
+                {
+                    _kafkaProducer.Dispose();
+                }
+
+                _disposedValue = true;
+            }
         }
     }
 }

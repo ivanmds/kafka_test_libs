@@ -14,6 +14,7 @@ namespace Bankly.Sdk.Kafka.Configuration
             if (_retryTimes.Contains(retryTime))
                 throw new System.Exception($"The retryTime {retryTime.Seconds}s already informed.");
 
+            _retryTimes.Add(retryTime);
             return this;
         }
 
