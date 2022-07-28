@@ -35,9 +35,9 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
 
         public async Task ExecuteAsync(string processId, CancellationToken stoppingToken)
         {
+            using var scope = _provider.CreateScope();
             try
             {
-                using var scope = _provider.CreateScope();
                 _logger.LogInformation($"Consumer from processId {processId} was started");
                 await Task.Run(async () =>
                 {
@@ -98,6 +98,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
             {
                 _logger.LogError($"Consumer from processId {processId} died");
                 _consumer.Dispose();
+                ConsumerErrorFatal(scope, ex);
                 throw ex;
             }
         }
@@ -188,6 +189,16 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
 
         private object ParseMessage(Type typeMessage, string msgBody)
              => typeMessage.Name == "String" ? msgBody : JsonConvert.DeserializeObject(msgBody, typeMessage, DefaultSerializerSettings.JsonSettings);
+
+
+        private void ConsumerErrorFatal(IServiceScope scope, Exception ex)
+        {
+            var errorFatal = scope.ServiceProvider.GetService<IConsumerErrorFatal>();
+            if (errorFatal != null)
+            {
+                errorFatal.AlertError(ex);
+            }
+        }
 
         private async Task MessageSkippedAsync(IServiceScope scope, string msgBody, HeaderValue header, CancellationToken stoppingToken)
         {

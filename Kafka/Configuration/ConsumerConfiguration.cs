@@ -26,6 +26,13 @@ namespace Bankly.Sdk.Kafka.Configuration
             return this;
         }
 
+        public ConsumerConfiguration AddConsumerErrorFatal<TErrorFatal>()
+           where TErrorFatal : IConsumerErrorFatal
+        {
+            _services.AddSingleton(typeof(IConsumerErrorFatal), typeof(TErrorFatal));
+            return this;
+        }
+
         public ConsumerConfiguration CreateListener(string topicName, string groupId, RetryConfiguration? retryConfiguration = null)
         {
             var listenerKey = groupId;
