@@ -43,7 +43,7 @@ namespace Bankly.Sdk.Kafka.Configuration
             var consumerType = typeof(TConsumer);
 
             //Add validation when add twice the same consumer
-            RegistryTypes.Register(consumerKey, consumerType);
+            Binds.AddType(consumerKey, consumerType);
             _services.AddSingleton(consumerType);
 
             return this;

@@ -9,7 +9,7 @@ namespace KafkaTest.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class TestWeatherForecastController : ControllerBase
+    public class CustomerWeatherForecastController : ControllerBase
     {
         static int count = 0;
         private static readonly string[] Summaries = new[]
@@ -20,13 +20,13 @@ namespace KafkaTest.Controllers
         private readonly IProducerMessage _producerMessage;
         private readonly ILogger<WeatherForecastController> _logger;
 
-        public TestWeatherForecastController(ILogger<WeatherForecastController> logger, IProducerMessage producerMessage)
+        public CustomerWeatherForecastController(ILogger<WeatherForecastController> logger, IProducerMessage producerMessage)
         {
             _logger = logger;
             _producerMessage = producerMessage;
         }
 
-        [HttpGet(Name = "GetTest")]
+        [HttpGet(Name = "GetCustomer")]
         public async Task<IEnumerable<WeatherForecast>> GetTest()
         {
             var header = HeaderValue.Create();
@@ -34,7 +34,7 @@ namespace KafkaTest.Controllers
             header.AddResponseTopic(""); //responseTopic
 
             var notification = GetCustomerNotification();
-            await _producerMessage.ProduceNotificationAsync("bankly.event.customers", notification.EntityId, notification, header);
+            await _producerMessage.ProduceWithBindNotificationAsync(notification.EntityId, notification, header);
 
             return Enumerable.Range(1, 5).Select(index => new WeatherForecast
             {

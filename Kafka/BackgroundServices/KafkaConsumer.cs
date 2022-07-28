@@ -52,7 +52,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                         var header = KafkaConsumerHelper.ParseHeader(result.Message.Headers);
 
                         var consumerKey = _listenerConfiguration.GetConsumerKey(GetEventName(header, msgBody));
-                        var consumerType = RegistryTypes.Recover(consumerKey);
+                        var consumerType = Binds.GetType(consumerKey);
                         var consumerClient = consumerType == null ? null : scope.ServiceProvider.GetService(consumerType);
                         var willRetry = false;
 
@@ -136,7 +136,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                 var retry = retryConfig.GetRetryTimeByAttempt(nextAttempt);
                 if (retry != null)
                 {
-                    var retryTopicName = TopicNameBuilder.GetRetryTopicName(
+                    var retryTopicName = BuilderName.GetTopicNameRetry(
                                                                _listenerConfiguration.SourceTopicName,
                                                                _listenerConfiguration.GroupId,
                                                                retry.Seconds);
@@ -211,7 +211,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                 await skippedConsumer.AlertAsync(context, msgBody);
             }
 
-            var skipTopicName = KafkaConsumerHelper.GetTopicNameSkipped(_listenerConfiguration.GroupId, _listenerConfiguration.SourceTopicName);
+            var skipTopicName = BuilderName.GetTopicNameSkipped(_listenerConfiguration.GroupId, _listenerConfiguration.SourceTopicName);
             await _producerMessage.ProduceAsync(skipTopicName, new { Message = msgBody }, header, stoppingToken);
         }
 
@@ -222,7 +222,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
             var context = ConsumeContext.Create(header);
             if (header.GetWillRetry() is false)
             {
-                var dlqTopicName = KafkaConsumerHelper.GetTopicNameDeadLetter(_listenerConfiguration.GroupId, _listenerConfiguration.SourceTopicName);
+                var dlqTopicName = BuilderName.GetTopicNameDeadLetter(_listenerConfiguration.GroupId, _listenerConfiguration.SourceTopicName);
                 await _producerMessage.ProduceAsync(dlqTopicName, new { MessageJson = msgBody, Error = ex }, header, stoppingToken);
             }
 

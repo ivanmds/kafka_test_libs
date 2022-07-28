@@ -39,15 +39,5 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                 MaxPollIntervalMs = maxPollIntervalMs
             };
         }
-
-        internal static string GetTopicNameSkipped(string groupId, string currentTopicName)
-        {
-            return $"skipped.{groupId}.{currentTopicName}";
-        }
-        
-        internal static string GetTopicNameDeadLetter(string groupId, string currentTopicName)
-        {
-            return $"dlq.{groupId}.{currentTopicName}";
-        }
     }
 }

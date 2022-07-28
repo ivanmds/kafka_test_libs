@@ -17,6 +17,15 @@ namespace Bankly.Sdk.Kafka.Configuration
             _kafkaBuilder = kafkaBuilder;
         }
 
+        public KafkaConfiguration Bind<TMessage>(string topicName)
+            where TMessage : class
+        {
+            var key = typeof(TMessage).FullName;
+            Binds.AddString(key, topicName);
+
+            return this;
+        }
+
         public KafkaConfiguration AddSkippedMessage<TSkippedMessage>()
             where TSkippedMessage : ISkippedMessage
         {

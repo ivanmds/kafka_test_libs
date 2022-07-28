@@ -27,11 +27,23 @@ namespace Bankly.Sdk.Kafka.Clients
             _kafkaProducer = new ProducerBuilder<string, string>(producerConfig).Build();
         }
 
-        public async Task<ProduceResult> ProduceAsync<TMessage>(string topicName, TMessage message, CancellationToken cancellationToken = default) 
-            where TMessage : class 
+        public async Task<ProduceResult> ProduceWithBindAsync<TMessage>(TMessage message, CancellationToken cancellationToken = default) where TMessage : class
+            => await ProduceMessageAsync(null, null, message, null, cancellationToken);
+
+        public async Task<ProduceResult> ProduceWithBindAsync<TMessage>(string key, TMessage message, CancellationToken cancellationToken = default) where TMessage : class
+            => await ProduceMessageAsync(null, key, message, null, cancellationToken);
+
+        public async Task<ProduceResult> ProduceWithBindAsync<TMessage>(TMessage message, HeaderValue header, CancellationToken cancellationToken = default) where TMessage : class
+            => await ProduceMessageAsync(null, null, message, header, cancellationToken);
+
+        public async Task<ProduceResult> ProduceWithBindAsync<TMessage>(string key, TMessage message, HeaderValue header, CancellationToken cancellationToken = default) where TMessage : class
+             => await ProduceMessageAsync(null, key, message, header, cancellationToken);
+
+        public async Task<ProduceResult> ProduceAsync<TMessage>(string topicName, TMessage message, CancellationToken cancellationToken = default)
+            where TMessage : class
             => await ProduceMessageAsync(topicName, null, message, null, cancellationToken);
 
-        public async Task<ProduceResult> ProduceAsync<TMessage>(string topicName, string key, TMessage message, CancellationToken cancellationToken = default) 
+        public async Task<ProduceResult> ProduceAsync<TMessage>(string topicName, string key, TMessage message, CancellationToken cancellationToken = default)
             where TMessage : class
             => await ProduceMessageAsync(topicName, key, message, null, cancellationToken);
 
@@ -42,19 +54,36 @@ namespace Bankly.Sdk.Kafka.Clients
         public async Task<ProduceResult> ProduceAsync<TMessage>(string topicName, string key, TMessage message, HeaderValue header, CancellationToken cancellationToken = default) where TMessage : class
             => await ProduceMessageAsync(topicName, key, message, header, cancellationToken);
 
+
+        public async Task<ProduceResult> ProduceWithBindNotificationAsync<TMessage>(string key, IEventNotification<TMessage> eventMessage, CancellationToken cancellationToken = default) where TMessage : class
+            => await ProduceMessageAsync(null, key, eventMessage, null, cancellationToken);
+
+        public async Task<ProduceResult> ProduceWithBindNotificationAsync<TMessage>(string key, IEventNotification<TMessage> eventMessage, HeaderValue header, CancellationToken cancellationToken = default) where TMessage : class
+            => await ProduceMessageAsync(null, key, eventMessage, header, cancellationToken);
+
+
         public async Task<ProduceResult> ProduceNotificationAsync<TMessage>(string topicName, string key, IEventNotification<TMessage> eventMessage, CancellationToken cancellationToken = default)
             where TMessage : class
             => await ProduceMessageAsync(topicName, key, eventMessage, null, cancellationToken);
 
-        public async Task<ProduceResult> ProduceNotificationAsync<TMessage>(string topicName, string key, IEventNotification<TMessage> eventMessage, HeaderValue header, CancellationToken cancellationToken = default) 
+        public async Task<ProduceResult> ProduceNotificationAsync<TMessage>(string topicName, string key, IEventNotification<TMessage> eventMessage, HeaderValue header, CancellationToken cancellationToken = default)
             where TMessage : class
             => await ProduceMessageAsync(topicName, key, eventMessage, header, cancellationToken);
 
 
 
-        private async Task<ProduceResult> ProduceMessageAsync<TMessage>(string topicName, string? key, TMessage message, HeaderValue? header, CancellationToken cancellationToken)
+        private async Task<ProduceResult> ProduceMessageAsync<TMessage>(string? topicName, string? key, TMessage message, HeaderValue? header, CancellationToken cancellationToken)
            where TMessage : class
         {
+            if (topicName is null)
+            {
+                var messageFullName = typeof(TMessage).FullName;
+                topicName = Binds.GetString(messageFullName);
+                if (topicName == null)
+                    throw new Exception("Make bind of message with topicName");
+            }
+
+
             if (topicName.StartsWith("bankly.event"))
                 throw new Exception("Should be used the method to IEventNotification");
 
@@ -84,9 +113,20 @@ namespace Bankly.Sdk.Kafka.Clients
             return ProduceResult.Create(result.Status == PersistenceStatus.Persisted);
         }
 
-        private async Task<ProduceResult> ProduceMessageAsync<TMessage>(string topicName, string key, IEventNotification<TMessage> eventMessage, HeaderValue? header, CancellationToken cancellationToken)
+        private async Task<ProduceResult> ProduceMessageAsync<TMessage>(string? topicName, string key, IEventNotification<TMessage> eventMessage, HeaderValue? header, CancellationToken cancellationToken)
            where TMessage : class
         {
+            if(string.IsNullOrEmpty(key))
+                throw new Exception("Should be informed the message key.");
+
+            if (topicName is null)
+            {
+                var messageFullName = eventMessage.GetType().FullName;
+                topicName = Binds.GetString(messageFullName);
+                if (topicName == null)
+                    throw new Exception("Make bind of message with topicName");
+            }
+
             if (!topicName.StartsWith("bankly.event"))
                 throw new Exception("The topic name should be started with bankly.event");
 
@@ -96,7 +136,7 @@ namespace Bankly.Sdk.Kafka.Clients
             header ??= new HeaderValue();
             header.AddIsNewClient();
             header.AddIsNotification();
-            header.AddEventName(eventMessage.Name);
+            header.AddEventName(eventMessage.Name ?? "");
 
             kafkaMessage.Headers = new Headers();
 
@@ -112,6 +152,7 @@ namespace Bankly.Sdk.Kafka.Clients
             return ProduceResult.Create(result.Status == PersistenceStatus.Persisted);
         }
 
+        
         ~KafkaClient() => Dispose(false);
 
         public void Dispose() => Dispose(true);

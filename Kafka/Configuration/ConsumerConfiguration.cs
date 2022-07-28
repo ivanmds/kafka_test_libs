@@ -29,7 +29,7 @@ namespace Bankly.Sdk.Kafka.Configuration
             {
                 foreach (var retry in retryConfiguration.GetRetries())
                 {
-                    var retryTopicName = TopicNameBuilder.GetRetryTopicName(topicName, groupId, retry.Seconds);
+                    var retryTopicName = BuilderName.GetTopicNameRetry(topicName, groupId, retry.Seconds);
 
                     var retryListenerConfiguration = ListenerConfiguration.Create(_services, retryTopicName, groupId, _kafkaBuilder, retryConfiguration, retry);
                     retryListenerConfiguration.SetSourceTopicName(topicName);

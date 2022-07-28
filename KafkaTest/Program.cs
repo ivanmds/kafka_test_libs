@@ -1,4 +1,6 @@
+using Bankly.Sdk.Kafka;
 using Bankly.Sdk.Kafka.Configuration;
+using Bankly.Sdk.Kafka.Notifications;
 using KafkaTest.Consumers;
 using KafkaTest.Notifications;
 
@@ -12,19 +14,32 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 
+
+
+
+
+
+
+var topicNameCustomerEvent = BuilderName.GetTopicName(true, Context.Account, "customers");
+var topicNameCardEvent = BuilderName.GetTopicName(true, Context.Card, "Cards");
+
+
 //var consumerBuilder = builder.Services.AddKafka(KafkaConnection.Create("b-2.acsstg-msk.z25ji9.c7.kafka.us-east-1.amazonaws.com:9092,b-1.acsstg-msk.z25ji9.c7.kafka.us-east-1.amazonaws.com:9092,b-3.acsstg-msk.z25ji9.c7.kafka.us-east-1.amazonaws.com:9092"));
 var consumerBuilder = builder.Services.AddKafka(KafkaConnection.Create("localhost:9092"))
         .AddSkippedMessage<SkippedMessage>()
         .AddConsumerErrorFatal<ConsumerErrorFatal>()
+        .Bind<CustomerNotification>(topicNameCustomerEvent)
+        .Bind<CardNotification>(topicNameCardEvent)
         .GetConsumerBuilder();
+
 
 var retry = RetryConfiguration.Create()
     .Add(RetryTime.Create(2))
     .Add(RetryTime.Create(15));
-    //.Add(RetryTime.Create(60))
-    //.Add(RetryTime.Create(120));
 
-consumerBuilder.CreateListener("bankly.event.customers", "event_customer", retry)
+
+var groupId = BuilderName.GetGroupIdName("test_kafka", "customer_events");
+consumerBuilder.CreateListener("bankly.event.account.customers", groupId, retry)
     .AddConsumer<CustomerCreatedConsumer>("CUSTOMER_WAS_CREATED")
     .AddConsumer<CustomerUpdatedConsumer>("CUSTOMER_WAS_UPDATED");
 
@@ -36,6 +51,18 @@ consumerBuilder.CreateListener("test.temp", "anothers_consumer")
 //    .AddSkippedMessage<SkippedMessage>()
 //    .AddConsumer<CardWasIssuedConsumer>("CARD_WAS_ISSUED")
 //    .AddConsumer<CardProgramWasCreated>("PROGRAM_WAS_CREATED");
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 var app = builder.Build();
