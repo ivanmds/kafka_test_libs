@@ -155,7 +155,11 @@ namespace Bankly.Sdk.Kafka.Clients
         
         ~KafkaClient() => Dispose(false);
 
-        public void Dispose() => Dispose(true);
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
 
         protected virtual void Dispose(bool disposing)
         {

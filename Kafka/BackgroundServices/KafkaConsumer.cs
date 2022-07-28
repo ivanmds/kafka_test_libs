@@ -13,13 +13,14 @@ using Newtonsoft.Json;
 
 namespace Bankly.Sdk.Kafka.BackgroundServices
 {
-    internal class KafkaConsumer
+    internal class KafkaConsumer : IDisposable
     {
         private readonly IServiceProvider _provider;
         private readonly ListenerConfiguration _listenerConfiguration;
         private readonly IProducerMessage _producerMessage;
         private readonly IConsumer<string, string> _consumer;
         private readonly ILogger _logger;
+        private bool _disposedValue;
 
         internal KafkaConsumer(IServiceProvider provider, ListenerConfiguration listenerConfiguration, IProducerMessage producerMessage, ILogger logger)
         {
@@ -38,7 +39,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
             using var scope = _provider.CreateScope();
             try
             {
-                _logger.LogInformation($"Consumer from processId {processId} was started");
+                _logger.LogInformation($"Consumer from processId {processId} was started. Process listening topic {_listenerConfiguration.TopicName}.");
                 await Task.Run(async () =>
                 {
                     while (!stoppingToken.IsCancellationRequested)
@@ -96,7 +97,8 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Consumer from processId {processId} died");
+                _logger.LogError($"Consumer from processId {processId} died, topic {_listenerConfiguration.TopicName} without consumer.");
+                _consumer.Unsubscribe();
                 _consumer.Dispose();
                 ConsumerErrorFatal(scope, ex);
                 throw ex;
@@ -228,6 +230,28 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
 
             var methodErrorConsume = consumerType.GetMethod("ErrorConsume");
             methodErrorConsume.Invoke(consumerClient, new[] { context as object, ex });
+        }
+
+        ~KafkaConsumer() => Dispose(false);
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposedValue)
+            {
+                if (disposing)
+                {
+                    _consumer.Close();
+                    _consumer.Dispose();
+                }
+
+                _disposedValue = true;
+            }
         }
     }
 }

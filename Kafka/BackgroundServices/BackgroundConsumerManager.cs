@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Bankly.Sdk.Kafka.Clients;
+using Bankly.Sdk.Kafka.Configuration;
 using Bankly.Sdk.Kafka.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -41,35 +42,11 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                 if (listener.RetryTime != null)
                     _topicNames.Add(listener.TopicName);
 
-                var kafkaConsumer = new KafkaConsumer(_provider, listener, _producerMessage, _logger);
-                var task = kafkaConsumer.ExecuteAsync(kv.Key, cancellationToken);
-                task.ContinueWith(ConsumerContinueWith);
-
-                _registryListenerService.Add($"task_id_{task.Id}", listener);
+                var task = CreateConsumerProcess(kv.Key, listener, cancellationToken);
                 _tasks.Add(task);
             }
 
             await base.StartAsync(cancellationToken);
-        }
-
-        private async Task ConsumerContinueWith(Task continueTask)
-        {
-            if (continueTask.IsFaulted is false)
-                return;
-            var consumerId = $"task_id_{continueTask.Id}";
-            var listener = _registryListenerService.Get(consumerId);
-            if(listener != null)
-            {
-                var kafkaConsumer = new KafkaConsumer(_provider, listener, _producerMessage, _logger);
-                var task = kafkaConsumer.ExecuteAsync(consumerId, default);
-                task.ContinueWith(ConsumerContinueWith);
-
-                _registryListenerService.Add($"task_id_{task.Id}", listener);
-                await Task.Run(() =>
-                {
-                    task.Wait();
-                });
-            }
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -83,6 +60,33 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
             {
                 Task.WaitAll(_tasks.ToArray());
             });
+        }
+
+        private async Task ConsumerContinueWith(Task continueTask)
+        {
+            if (continueTask.IsFaulted is false)
+                return;
+            var consumerId = $"task_id_{continueTask.Id}";
+            var listener = _registryListenerService.Get(consumerId);
+            if (listener != null)
+            {
+                var task = CreateConsumerProcess(consumerId, listener, default);
+                await Task.Run(() =>
+                {
+                    task.Wait();
+                });
+            }
+        }
+
+        private Task CreateConsumerProcess(string processId, ListenerConfiguration listener, CancellationToken cancellationToken)
+        {
+            var kafkaConsumer = new KafkaConsumer(_provider, listener, _producerMessage, _logger);
+            var task = kafkaConsumer.ExecuteAsync(processId, cancellationToken);
+            task.ContinueWith(ConsumerContinueWith);
+
+            _registryListenerService.Add($"task_id_{task.Id}", listener);
+
+            return task;
         }
     }
 }

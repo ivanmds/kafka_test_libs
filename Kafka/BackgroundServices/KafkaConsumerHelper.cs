@@ -7,7 +7,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
 {
     internal class KafkaConsumerHelper
     {
-        private const int DEFAULT_MAXPOLL_INTERVALSMS = 300000;
+        private const int DEFAULT_MAX_POLL_INTERVALS_MS = 300000;
 
         internal static HeaderValue ParseHeader(Headers headers)
         {
@@ -27,8 +27,8 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
 
         internal static ConsumerConfig GetConsumerConfig(ListenerConfiguration listenerConfiguration)
         {
-            var maxPollIntervalMs = listenerConfiguration.RetryTime is null ? DEFAULT_MAXPOLL_INTERVALSMS
-                : listenerConfiguration.RetryTime.GetMilliseconds + DEFAULT_MAXPOLL_INTERVALSMS;
+            var maxPollIntervalMs = listenerConfiguration.RetryTime is null ? DEFAULT_MAX_POLL_INTERVALS_MS
+                : listenerConfiguration.RetryTime.GetMilliseconds + DEFAULT_MAX_POLL_INTERVALS_MS;
 
             return new ConsumerConfig
             {

@@ -80,6 +80,11 @@
         ///
         /// Agrupa todos os eventos relacionados à gestão de parceiros.
         ///
-        Partner
+        Partner,
+
+        /// 
+        /// Agrupa todos os eventos relacionados à transações financeiras
+        /// 
+        Transaction
     }
 }
