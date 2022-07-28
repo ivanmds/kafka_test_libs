@@ -33,7 +33,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
 
         public override async Task StartAsync(CancellationToken cancellationToken)
         {
-            var listeners = _registryListenerService.GetListeners();
+            var listeners = _registryListenerService.GetListeners().ToArray();
 
             foreach (var kv in listeners)
             {
@@ -43,10 +43,33 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
 
                 var kafkaConsumer = new KafkaConsumer(_provider, listener, _producerMessage, _logger);
                 var task = kafkaConsumer.ExecuteAsync(kv.Key, cancellationToken);
+                task.ContinueWith(ConsumerContinueWith);
+
+                _registryListenerService.Add($"task_id_{task.Id}", listener);
                 _tasks.Add(task);
             }
 
             await base.StartAsync(cancellationToken);
+        }
+
+        private async Task ConsumerContinueWith(Task continueTask)
+        {
+            if (continueTask.IsFaulted is false)
+                return;
+            var consumerId = $"task_id_{continueTask.Id}";
+            var listener = _registryListenerService.Get(consumerId);
+            if(listener != null)
+            {
+                var kafkaConsumer = new KafkaConsumer(_provider, listener, _producerMessage, _logger);
+                var task = kafkaConsumer.ExecuteAsync(consumerId, default);
+                task.ContinueWith(ConsumerContinueWith);
+
+                _registryListenerService.Add($"task_id_{task.Id}", listener);
+                await Task.Run(() =>
+                {
+                    task.Wait();
+                });
+            }
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
