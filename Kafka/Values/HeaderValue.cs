@@ -19,10 +19,16 @@ namespace Bankly.Sdk.Kafka.Values
         public string GetCorrelationId()
           => GetValue(DefaultHeader.KeyCorrelationId);
 
+        public void AddIsNewClient()
+            => PutKeyValue(KeyValue.Create(DefaultHeader.KeyIsNewClient, "true"));
+
+        public bool GetIsNewClient()
+           => _header.ContainsKey(DefaultHeader.KeyIsNewClient);
+
         public void AddIsNotification()
             => PutKeyValue(KeyValue.Create(DefaultHeader.KeyIsNotification, "true"));
         
-        public bool IsNotification()
+        public bool GetIsNotification()
            => _header.ContainsKey(DefaultHeader.KeyIsNotification);
 
         public void AddResponseTopic(string topicName)
@@ -33,6 +39,16 @@ namespace Bankly.Sdk.Kafka.Values
        
         public void AddEventName(string eventName)
             => PutKeyValue(KeyValue.Create(DefaultHeader.KeyEventName, eventName));
+
+        public string GetEventName()
+        {
+            var eventName = GetValue(DefaultHeader.KeyEventName);
+
+            if (string.IsNullOrWhiteSpace(eventName))
+                eventName = DefaultHeader.KeyDefaultEvenName;
+
+            return eventName;
+        }
 
         public void AddWillRetry(bool value)
             => PutKeyValue(KeyValue.Create(DefaultHeader.KeyWillRetry, value.ToString()));
@@ -73,15 +89,7 @@ namespace Bankly.Sdk.Kafka.Values
             return int.Parse(value);
         }
 
-        public string GetEventName()
-        {
-            var eventName = GetValue(DefaultHeader.KeyEventName);
-
-            if (string.IsNullOrWhiteSpace(eventName))
-                eventName = DefaultHeader.KeyDefaultEvenName;
-
-            return eventName;
-        }
+        
 
         public IEnumerable<KeyValue> GetKeyValues()
         {

@@ -54,13 +54,12 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                         var consumerKey = _listenerConfiguration.GetConsumerKey(GetEventName(header, msgBody));
                         var consumerType = RegistryTypes.Recover(consumerKey);
                         var consumerClient = consumerType == null ? null : scope.ServiceProvider.GetService(consumerType);
-                        var context = ConsumeContext.Create(header);
                         var willRetry = false;
 
                         try
                         {
                             if (consumerClient is null)
-                                await MessageSkippedAsync(scope, context, msgBody, header, stoppingToken);
+                                await MessageSkippedAsync(scope, msgBody, header, stoppingToken);
                             else
                             {
                                 var delay = header.GetRetryAt();
@@ -70,11 +69,11 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                                 var typeMessage = GetTypeMessage(consumerType, consumerClient);
                                 var msgParsed = ParseMessage(typeMessage, msgBody);
 
-                                BeforeConsume(consumerType, consumerClient, context, msgParsed);
+                                BeforeConsume(consumerType, consumerClient, header, msgParsed);
 
                                 try
                                 {
-                                    var methodConsumeResult = ConsumeAsync(consumerType, consumerClient, context, msgParsed);
+                                    var methodConsumeResult = ConsumeAsync(consumerType, consumerClient, header, msgParsed);
                                     methodConsumeResult.Wait();
                                 }
                                 catch (Exception ex)
@@ -83,16 +82,14 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                                     throw ex;
                                 }
 
-                                AfterConsume(consumerType, consumerClient, context, msgParsed);
+                                AfterConsume(consumerType, consumerClient, header, msgParsed);
                                 _consumer.Commit();
                             }
                         }
                         catch (Exception ex)
                         {
-                            if (willRetry is false)
-                                header.AddWillRetry(false);
-
-                            await MessageErrorAsync(consumerType, consumerClient, context, msgBody, header, ex, stoppingToken);
+                            header.AddWillRetry(willRetry);
+                            await MessageErrorAsync(consumerType, consumerClient, msgBody, header, ex, stoppingToken);
                         }
                     }
                 });
@@ -109,7 +106,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
         {
             try
             {
-                if (header.IsNotification())
+                if (header.GetIsNewClient())
                     return header.GetEventName();
                 else
                 {
@@ -143,9 +140,14 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                                                                _listenerConfiguration.GroupId,
                                                                retry.Seconds);
 
-                    header.AddRetryAt(retry.Seconds, nextAttempt);
-                    header.AddWillRetry(true);
-                    await _producerMessage.ProduceAsync(retryTopicName, msgParsed, header, stoppingToken);
+
+                    var headerRetry = HeaderValue.Create();
+                    foreach (var kv in header.GetKeyValues())
+                        headerRetry.PutKeyValue(kv);
+
+                    headerRetry.AddRetryAt(retry.Seconds, nextAttempt);
+
+                    await _producerMessage.ProduceAsync(retryTopicName, msgParsed, headerRetry, stoppingToken);
 
                     result = true;
                 }
@@ -160,20 +162,26 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
             return (Type)methodGetTypeMessage.Invoke(consumerClient, null);
         }
 
-        private void BeforeConsume(Type consumerType, object consumerClient, ConsumeContext context, object msgParsed)
+        private void BeforeConsume(Type consumerType, object consumerClient, HeaderValue header, object msgParsed)
         {
+            var context = ConsumeContext.Create(header);
+
             var methodBeforeConsume = consumerType.GetMethod("BeforeConsume");
             methodBeforeConsume.Invoke(consumerClient, new[] { context, msgParsed });
         }
 
-        private Task ConsumeAsync(Type consumerType, object consumerClient, ConsumeContext context, object msgParsed)
+        private Task ConsumeAsync(Type consumerType, object consumerClient, HeaderValue header, object msgParsed)
         {
+            var context = ConsumeContext.Create(header);
+
             var methodConsume = consumerType.GetMethod("ConsumeAsync");
             return (Task)methodConsume.Invoke(consumerClient, new[] { context, msgParsed });
         }
 
-        private void AfterConsume(Type consumerType, object consumerClient, ConsumeContext context, object msgParsed)
+        private void AfterConsume(Type consumerType, object consumerClient, HeaderValue header, object msgParsed)
         {
+            var context = ConsumeContext.Create(header);
+
             var methodAfterConsume = consumerType.GetMethod("AfterConsume");
             methodAfterConsume.Invoke(consumerClient, new[] { context, msgParsed });
         }
@@ -181,10 +189,11 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
         private object ParseMessage(Type typeMessage, string msgBody)
              => typeMessage.Name == "String" ? msgBody : JsonConvert.DeserializeObject(msgBody, typeMessage, DefaultSerializerSettings.JsonSettings);
 
-        private async Task MessageSkippedAsync(IServiceScope scope, ConsumeContext context, string msgBody, HeaderValue header, CancellationToken stoppingToken)
+        private async Task MessageSkippedAsync(IServiceScope scope, string msgBody, HeaderValue header, CancellationToken stoppingToken)
         {
             _consumer.Commit();
 
+            var context = ConsumeContext.Create(header);
             var skippedConsumer = scope.ServiceProvider.GetService<ISkippedMessage>();
             if (skippedConsumer != null)
             {
@@ -195,14 +204,17 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
             await _producerMessage.ProduceAsync(skipTopicName, new { Message = msgBody }, header, stoppingToken);
         }
 
-        private async Task MessageErrorAsync(Type consumerType, object consumerClient, ConsumeContext context, string msgBody, HeaderValue header, Exception ex, CancellationToken stoppingToken)
+        private async Task MessageErrorAsync(Type consumerType, object consumerClient, string msgBody, HeaderValue header, Exception ex, CancellationToken stoppingToken)
         {
             _consumer.Commit();
+
+            var context = ConsumeContext.Create(header);
             if (header.GetWillRetry() is false)
             {
                 var dlqTopicName = KafkaConsumerHelper.GetTopicNameDeadLetter(_listenerConfiguration.GroupId, _listenerConfiguration.SourceTopicName);
                 await _producerMessage.ProduceAsync(dlqTopicName, new { MessageJson = msgBody, Error = ex }, header, stoppingToken);
             }
+
             var methodErrorConsume = consumerType.GetMethod("ErrorConsume");
             methodErrorConsume.Invoke(consumerClient, new[] { context as object, ex });
         }

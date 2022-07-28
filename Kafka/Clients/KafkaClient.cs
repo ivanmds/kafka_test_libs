@@ -65,6 +65,7 @@ namespace Bankly.Sdk.Kafka.Clients
                 kafkaMessage.Key = key;
 
             header ??= new HeaderValue();
+            header.AddIsNewClient();
 
             if (header != null)
             {
@@ -93,6 +94,7 @@ namespace Bankly.Sdk.Kafka.Clients
             var kafkaMessage = new Message<string, string> { Key = key, Value = messageNotification };
 
             header ??= new HeaderValue();
+            header.AddIsNewClient();
             header.AddIsNotification();
             header.AddEventName(eventMessage.Name);
 
