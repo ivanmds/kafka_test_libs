@@ -31,7 +31,6 @@ namespace KafkaTest.Controllers
         {
             var header = HeaderValue.Create();
             header.AddCorrelationId(Guid.NewGuid().ToString());
-            header.AddResponseTopic(""); //responseTopic
 
             var notification = GetCustomerNotification();
             await _producerMessage.ProduceWithBindNotificationAsync(notification.EntityId, notification, header);
