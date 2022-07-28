@@ -1,15 +1,22 @@
-﻿namespace Bankly.Sdk.Kafka.Configuration
+﻿using Bankly.Sdk.Kafka.Consumers;
+using Bankly.Sdk.Kafka.DefaultValues;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Bankly.Sdk.Kafka.Configuration
 {
-    internal class ListenerConfiguration
+    public class ListenerConfiguration
     {
+        private readonly IServiceCollection _services;
         private readonly string _topicName;
         private string _sourceTopicName;
         private readonly string _groupId;
         private readonly KafkaBuilder _kafkaBuilder;
         private readonly RetryConfiguration? _retryConfiguration;
         private readonly RetryTime? _retryTime;
-        public ListenerConfiguration(string topicName, string groupId, KafkaBuilder kafkaBuilder, RetryConfiguration? retryConfiguration, RetryTime? retryTime = null)
+
+        public ListenerConfiguration(IServiceCollection services, string topicName, string groupId, KafkaBuilder kafkaBuilder, RetryConfiguration? retryConfiguration, RetryTime? retryTime = null)
         {
+            _services = services;
             _topicName = topicName;
             _sourceTopicName = topicName;
             _groupId = groupId;
@@ -18,33 +25,46 @@
             _retryTime = retryTime;
         }
 
-        public static ListenerConfiguration Create(string topicName, string groupId, KafkaBuilder kafkaBuilder, RetryConfiguration? retryConfiguration, RetryTime? retryTime = null)
-            => new ListenerConfiguration(topicName, groupId, kafkaBuilder, retryConfiguration, retryTime);
+        internal static ListenerConfiguration Create(IServiceCollection services, string topicName, string groupId, KafkaBuilder kafkaBuilder, RetryConfiguration? retryConfiguration, RetryTime? retryTime = null)
+            => new ListenerConfiguration(services, topicName, groupId, kafkaBuilder, retryConfiguration, retryTime);
 
-        public string TopicName => _topicName;
-        public string SourceTopicName => _sourceTopicName;
-        public string GroupId => _groupId;
-        public KafkaBuilder KafkaBuilder => _kafkaBuilder;
-        public RetryConfiguration? RetryConfiguration => _retryConfiguration;
-        public RetryTime? RetryTime => _retryTime;
+        internal string TopicName => _topicName;
+        internal string SourceTopicName => _sourceTopicName;
+        internal string GroupId => _groupId;
+        internal KafkaBuilder KafkaBuilder => _kafkaBuilder;
+        internal RetryConfiguration? RetryConfiguration => _retryConfiguration;
+        internal RetryTime? RetryTime => _retryTime;
 
 
-        public string GetConsumerKey(string eventName)
+        public ListenerConfiguration AddConsumer<TConsumer>(string eventName = DefaultHeader.KeyDefaultEvenName)
+            where TConsumer : IConsumerMessage
+        {
+            var consumerKey = GetConsumerKey(GroupId, eventName);
+            var consumerType = typeof(TConsumer);
+
+            //Add validation when add twice the same consumer
+            RegistryTypes.Register(consumerKey, consumerType);
+            _services.AddSingleton(consumerType);
+
+            return this;
+        }
+
+        internal string GetConsumerKey(string eventName)
           => GetConsumerKey(_groupId, eventName);
 
-        public string GetEventNameFromConsumerKey(string keyConsumer)
+        internal string GetEventNameFromConsumerKey(string keyConsumer)
             => keyConsumer.Replace(_groupId, "");
 
-        public void SetSourceTopicName(string sourceTopicName)
+        internal void SetSourceTopicName(string sourceTopicName)
             => _sourceTopicName = sourceTopicName;
 
 
-        public static string GetConsumerKey(string groupId, string eventName)
+        internal static string GetConsumerKey(string groupId, string eventName)
         {
             var sufixName = eventName;
 
             if (string.IsNullOrWhiteSpace(sufixName))
-                sufixName = DefaultValues.DefaultHeader.KeyDefaultEvenName;
+                sufixName = DefaultHeader.KeyDefaultEvenName;
 
             return $"{groupId}#{sufixName}";
         }

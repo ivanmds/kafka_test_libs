@@ -14,7 +14,9 @@ builder.Services.AddSwaggerGen();
 
 //var consumerBuilder = builder.Services.AddKafka(KafkaConnection.Create("b-2.acsstg-msk.z25ji9.c7.kafka.us-east-1.amazonaws.com:9092,b-1.acsstg-msk.z25ji9.c7.kafka.us-east-1.amazonaws.com:9092,b-3.acsstg-msk.z25ji9.c7.kafka.us-east-1.amazonaws.com:9092"));
 var consumerBuilder = builder.Services.AddKafka(KafkaConnection.Create("localhost:9092"))
-        .AddSkippedMessage<SkippedMessage>();
+        .AddSkippedMessage<SkippedMessage>()
+        .AddConsumerErrorFatal<ConsumerErrorFatal>()
+        .GetConsumerBuilder();
 
 var retry = RetryConfiguration.Create()
     .Add(RetryTime.Create(2))
