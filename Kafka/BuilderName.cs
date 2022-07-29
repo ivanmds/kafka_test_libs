@@ -20,6 +20,9 @@ namespace Bankly.Sdk.Kafka
             return $"bankly.{context}.{domainName}.{processName}.{suffix}".ToLower();
         }
 
+        public static string GetGroupIdName(string applicationName, string processName)
+           => $"{applicationName}_{processName}".ToLower();
+
         internal static string GetTopicNameRetry(string currentTopic, string groupId, int secondsToRetry)
             => $"retry_{secondsToRetry}s.{groupId}.{currentTopic}".ToLower();
 
@@ -28,8 +31,5 @@ namespace Bankly.Sdk.Kafka
 
         internal static string GetTopicNameDeadLetter(string groupId, string currentTopicName)
             => $"dlq.{groupId}.{currentTopicName}".ToLower();
-
-        public static string GetGroupIdName(string applicationName, string processName)
-            => $"{applicationName}_{processName}".ToLower();
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Bankly.Sdk.Kafka.Exceptions;
 
 namespace Bankly.Sdk.Kafka.Configuration
 {
@@ -9,16 +10,16 @@ namespace Bankly.Sdk.Kafka.Configuration
         public RetryConfiguration Add(RetryTime retryTime)
         {
             if (_retryTimes.Count > 5)
-                throw new System.Exception("Inform until 5 retryTime");
+                throw new MaxRetryTimeConfiguredException("Inform until 5 retryTime");
 
             if (_retryTimes.Contains(retryTime))
-                throw new System.Exception($"The retryTime {retryTime.Seconds}s already informed.");
+                throw new DuplicatedRetryTimeException($"The retryTime {retryTime.Seconds}s already informed.");
 
             _retryTimes.Add(retryTime);
             return this;
         }
 
-        public RetryTime GetRetryTimeByAttempt(int attempt)
+        internal RetryTime GetRetryTimeByAttempt(int attempt)
         {
             if (attempt <= 0 || attempt > _retryTimes.Count)
                 throw new System.Exception("Attempt invalid");

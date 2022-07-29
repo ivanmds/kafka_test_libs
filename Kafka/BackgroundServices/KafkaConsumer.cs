@@ -232,7 +232,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
             methodErrorConsume.Invoke(consumerClient, new[] { context as object, ex });
         }
 
-        ~KafkaConsumer() => Dispose(false);
+        ~KafkaConsumer() => Dispose(true);
 
         public void Dispose()
         {

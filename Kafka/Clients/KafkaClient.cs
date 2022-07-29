@@ -8,6 +8,7 @@ using Bankly.Sdk.Kafka.Notifications;
 using Bankly.Sdk.Kafka.Values;
 using Newtonsoft.Json;
 using System;
+using Bankly.Sdk.Kafka.Exceptions;
 
 namespace Bankly.Sdk.Kafka.Clients
 {
@@ -80,12 +81,12 @@ namespace Bankly.Sdk.Kafka.Clients
                 var messageFullName = typeof(TMessage).FullName;
                 topicName = Binds.GetString(messageFullName);
                 if (topicName == null)
-                    throw new Exception("Make bind of message with topicName");
+                    throw new NoneBindConfiguredException(messageFullName);
             }
 
 
             if (topicName.StartsWith("bankly.event"))
-                throw new Exception("Should be used the method to IEventNotification");
+                throw new InvalidTopicNameException("Should be used the method to IEventNotification");
 
             var messageNotification = JsonConvert.SerializeObject(message, DefaultSerializerSettings.JsonSettings);
 
@@ -117,18 +118,18 @@ namespace Bankly.Sdk.Kafka.Clients
            where TMessage : class
         {
             if(string.IsNullOrEmpty(key))
-                throw new Exception("Should be informed the message key.");
+                throw new InvalidProgramException("Should be informed the message key.");
 
             if (topicName is null)
             {
                 var messageFullName = eventMessage.GetType().FullName;
                 topicName = Binds.GetString(messageFullName);
                 if (topicName == null)
-                    throw new Exception("Make bind of message with topicName");
+                    throw new NoneBindConfiguredException("Make bind of message with topicName");
             }
 
             if (!topicName.StartsWith("bankly.event"))
-                throw new Exception("The topic name should be started with bankly.event");
+                throw new InvalidTopicNameException("The topic name should be started with bankly.event");
 
             var messageNotification = JsonConvert.SerializeObject(eventMessage, DefaultSerializerSettings.JsonSettings);
             var kafkaMessage = new Message<string, string> { Key = key, Value = messageNotification };
@@ -153,7 +154,7 @@ namespace Bankly.Sdk.Kafka.Clients
         }
 
         
-        ~KafkaClient() => Dispose(false);
+        ~KafkaClient() => Dispose(true);
 
         public void Dispose()
         {

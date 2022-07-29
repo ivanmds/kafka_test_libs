@@ -10,4 +10,15 @@ namespace KafkaTest.Consumers
             Console.WriteLine(message);
         }
     }
+
+
+    public class ExampleConsumer : Consumer<Customer>
+    {
+        public override async Task ConsumeAsync(ConsumeContext context, Customer message)
+        {
+            Console.WriteLine(message);
+        }
+    }
+
+
 }

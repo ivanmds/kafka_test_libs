@@ -9,18 +9,14 @@ namespace KafkaTest.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class CustomerWeatherForecastController : ControllerBase
+    public class CustomerController : ControllerBase
     {
-        static int count = 0;
-        private static readonly string[] Summaries = new[]
-        {
-            "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-        };
 
         private readonly IProducerMessage _producerMessage;
-        private readonly ILogger<WeatherForecastController> _logger;
+        private readonly ILogger<CustomerController> _logger;
+        private static int count = 0;
 
-        public CustomerWeatherForecastController(ILogger<WeatherForecastController> logger, IProducerMessage producerMessage)
+        public CustomerController(ILogger<CustomerController> logger, IProducerMessage producerMessage)
         {
             _logger = logger;
             _producerMessage = producerMessage;
@@ -31,6 +27,7 @@ namespace KafkaTest.Controllers
         {
             var header = HeaderValue.Create();
             header.AddCorrelationId(Guid.NewGuid().ToString());
+            header.AddResponseTopic("topic_to_response");
 
             var notification = GetCustomerNotification();
             await _producerMessage.ProduceWithBindNotificationAsync(notification.EntityId, notification, header);
@@ -39,7 +36,6 @@ namespace KafkaTest.Controllers
             {
                 Date = DateTime.Now.AddDays(index),
                 TemperatureC = Random.Shared.Next(-20, 55),
-                Summary = Summaries[Random.Shared.Next(Summaries.Length)]
             })
             .ToArray();
         }

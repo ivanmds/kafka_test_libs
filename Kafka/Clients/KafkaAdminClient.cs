@@ -46,7 +46,7 @@ namespace Bankly.Sdk.Kafka.Clients
             }
         }
 
-        ~KafkaAdminClient() => Dispose(false);
+        ~KafkaAdminClient() => Dispose(true);
 
         public void Dispose()
         {
