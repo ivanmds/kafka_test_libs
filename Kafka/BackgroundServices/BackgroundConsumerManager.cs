@@ -51,15 +51,8 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            await Task.Run(() => {
-                var taskPutTopic = _topicNames.Select(topicName => _kafkaAdminClient.PutTopicAsync(topicName));
-                Task.WaitAll(taskPutTopic.ToArray());
-            });
-
-            await Task.Run(() =>
-            {
-                Task.WaitAll(_tasks.ToArray());
-            });
+            await Task.WhenAll(_topicNames.Select(topicName => _kafkaAdminClient.PutTopicAsync(topicName)));
+            await Task.WhenAll(_tasks.ToArray());
         }
 
         private async Task ConsumerContinueWith(Task continueTask)
@@ -70,11 +63,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
             var listener = _registryListenerService.Get(consumerId);
             if (listener != null)
             {
-                var task = CreateConsumerProcess(consumerId, listener, default);
-                await Task.Run(() =>
-                {
-                    task.Wait();
-                });
+                await CreateConsumerProcess(consumerId, listener, default);
             }
         }
 

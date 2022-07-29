@@ -46,9 +46,6 @@ consumerBuilder.CreateListener("test.temp", "anothers_consumer")
 
 
 
-
-
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
