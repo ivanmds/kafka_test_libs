@@ -11,7 +11,7 @@ IHost host = Host.CreateDefaultBuilder(args)
         var customerEventsTopic = BuilderName.GetTopicName(true, Context.Account, "customers");
         var cardEventsTopic = BuilderName.GetTopicName(true, Context.Card, "cards");
 
-        var consumerBuilder = services.AddKafka(KafkaConnection.Create("localhost:9092"))
+        var consumerBuilder = services.AddKafka(KafkaConnection.Create("kafka-service:9092"))
             .GetConsumerBuilder();
 
         var retry = RetryConfiguration.Create()

@@ -14,7 +14,7 @@ IHost host = Host.CreateDefaultBuilder(args)
         var customerEventsTopic = BuilderName.GetTopicName(true, Context.Account, "customers");
         var cardEventsTopic = BuilderName.GetTopicName(true, Context.Card, "cards");
 
-        services.AddKafka(KafkaConnection.Create("localhost:9092"))
+        services.AddKafka(KafkaConnection.Create("kafka-service:9092"))
             .Bind<Customer>(customerTopic)
             .Bind<Card>(cardTopic)
             .Bind<CustomerNotification>(customerEventsTopic)
