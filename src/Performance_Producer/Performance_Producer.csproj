@@ -6,14 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-Performance_Producer-14EDF45D-412B-4BF4-9492-312E003F8E09</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <DockerfileContext>..\..</DockerfileContext>
   </PropertyGroup>
 
   <ItemGroup>
+	<PackageReference Include="Confluent.Kafka" Version="1.9.0" />
+	<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.14.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Kafka\Bankly.Sdk.Kafka.csproj" />
   </ItemGroup>
 </Project>

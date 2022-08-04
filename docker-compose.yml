@@ -1,0 +1,11 @@
+version: '3.4'
+
+services:
+  performance_producer:
+    image: ${DOCKER_REGISTRY-}performanceproducer
+    build:
+      context: .
+      dockerfile: src/Performance_Producer/Dockerfile
+    environment:
+      Kafka_BootstrapServers: "test"
+        

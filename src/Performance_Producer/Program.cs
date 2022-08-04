@@ -9,18 +9,25 @@ IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices(services =>
     {
 
+        var builder = new ConfigurationBuilder();
+        builder.AddJsonFile("appsettings.json");
+        builder.AddEnvironmentVariables();
+
+        var configuration = builder.Build();
+
         var customerTopic = BuilderName.GetTopicNameRPC(true, Context.Account, "customers", "create_customer");
         var cardTopic = BuilderName.GetTopicNameRPC(true, Context.Card, "cards", "create_card");
         var customerEventsTopic = BuilderName.GetTopicName(true, Context.Account, "customers");
         var cardEventsTopic = BuilderName.GetTopicName(true, Context.Card, "cards");
 
-        services.AddKafka(KafkaConnection.Create("kafka-service:9092"))
+        var KafkaBootstrapServers = configuration.GetValue<string>("Kafka_BootstrapServers");
+
+        services.AddKafka(KafkaConnection.Create(KafkaBootstrapServers))
             .Bind<Customer>(customerTopic)
             .Bind<Card>(cardTopic)
             .Bind<CustomerNotification>(customerEventsTopic)
             .Bind<CardNotification>(cardEventsTopic);
 
-        
         services.AddHostedService<Worker_P1>();
         services.AddHostedService<Worker_P2>();
         services.AddHostedService<Worker_P3>();

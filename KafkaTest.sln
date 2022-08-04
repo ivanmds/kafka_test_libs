@@ -5,13 +5,15 @@ VisualStudioVersion = 17.1.32421.90
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{D9CBE83C-65EE-495A-B636-F63684CA714D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bankly.Sdk.Kafka", "src\Kafka\Bankly.Sdk.Kafka.csproj", "{7D569641-2134-438A-BB27-FA7BBBFFFD60}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KafkaTest", "src\KafkaTest\KafkaTest.csproj", "{05CD6CB1-B53C-416E-B1F9-D9FFA696FB57}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Performance_Consumer", "src\Performance_Consumer\Performance_Consumer.csproj", "{7D2EBC7B-5B7A-4B07-995E-36F9B914AAA4}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Performance_Producer", "src\Performance_Producer\Performance_Producer.csproj", "{F4462A98-7F50-4558-B831-D5E0AF5CA09A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bankly.Sdk.Kafka", "src\Bankly.Sdk.Kafka\Bankly.Sdk.Kafka.csproj", "{C43A893C-12C0-4E4C-A472-BDEB00CC8214}"
+EndProject
+Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{0139E93E-F727-4E04-B210-CAE72B1F3BBD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,10 +21,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{7D569641-2134-438A-BB27-FA7BBBFFFD60}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7D569641-2134-438A-BB27-FA7BBBFFFD60}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7D569641-2134-438A-BB27-FA7BBBFFFD60}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7D569641-2134-438A-BB27-FA7BBBFFFD60}.Release|Any CPU.Build.0 = Release|Any CPU
 		{05CD6CB1-B53C-416E-B1F9-D9FFA696FB57}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{05CD6CB1-B53C-416E-B1F9-D9FFA696FB57}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{05CD6CB1-B53C-416E-B1F9-D9FFA696FB57}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -35,15 +33,23 @@ Global
 		{F4462A98-7F50-4558-B831-D5E0AF5CA09A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F4462A98-7F50-4558-B831-D5E0AF5CA09A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F4462A98-7F50-4558-B831-D5E0AF5CA09A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C43A893C-12C0-4E4C-A472-BDEB00CC8214}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C43A893C-12C0-4E4C-A472-BDEB00CC8214}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C43A893C-12C0-4E4C-A472-BDEB00CC8214}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C43A893C-12C0-4E4C-A472-BDEB00CC8214}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0139E93E-F727-4E04-B210-CAE72B1F3BBD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0139E93E-F727-4E04-B210-CAE72B1F3BBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0139E93E-F727-4E04-B210-CAE72B1F3BBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0139E93E-F727-4E04-B210-CAE72B1F3BBD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{7D569641-2134-438A-BB27-FA7BBBFFFD60} = {D9CBE83C-65EE-495A-B636-F63684CA714D}
 		{05CD6CB1-B53C-416E-B1F9-D9FFA696FB57} = {D9CBE83C-65EE-495A-B636-F63684CA714D}
 		{7D2EBC7B-5B7A-4B07-995E-36F9B914AAA4} = {D9CBE83C-65EE-495A-B636-F63684CA714D}
 		{F4462A98-7F50-4558-B831-D5E0AF5CA09A} = {D9CBE83C-65EE-495A-B636-F63684CA714D}
+		{C43A893C-12C0-4E4C-A472-BDEB00CC8214} = {D9CBE83C-65EE-495A-B636-F63684CA714D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {17FF18F0-A522-40FC-A139-D20D1E402F21}

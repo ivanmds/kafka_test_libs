@@ -5,19 +5,13 @@ WORKDIR /app
 
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /src
-COPY ["./.", "Performance_Producer"]
-#COPY ["Performance_Producer/Performance_Producer.csproj", "Performance_Producer/"]
-RUN ls Performance_Producer
+COPY . .
+RUN dotnet build "Performance_Producer.csproj" -c Release -o /app/build
 
-#RUN dotnet restore "Performance_Producer/Performance_Producer.csproj"
-#COPY . .
-#WORKDIR "/src/Performance_Producer"
-#RUN dotnet build "Performance_Producer.csproj" -c Release -o /app/build
-#
-#FROM build AS publish
-#RUN dotnet publish "Performance_Producer.csproj" -c Release -o /app/publish
-#
-#FROM base AS final
-#WORKDIR /app
-#COPY --from=publish /app/publish .
-#ENTRYPOINT ["dotnet", "Performance_Producer.dll"]
+FROM build AS publish
+RUN dotnet publish "Performance_Producer.csproj" -c Release -o /app/publish
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "Performance_Producer.dll"]
