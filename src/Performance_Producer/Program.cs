@@ -20,9 +20,10 @@ IHost host = Host.CreateDefaultBuilder(args)
         var customerEventsTopic = BuilderName.GetTopicName(true, Context.Account, "customers");
         var cardEventsTopic = BuilderName.GetTopicName(true, Context.Card, "cards");
 
-        var KafkaBootstrapServers = configuration.GetValue<string>("Kafka_BootstrapServers");
+        var kafkaBootstrapServers = configuration.GetValue<string>("Kafka_BootstrapServers");
+        var kafkaIsPlaintext = configuration.GetValue<bool>("Kafka_IsPlaintext");
 
-        services.AddKafka(KafkaConnection.Create(KafkaBootstrapServers))
+        services.AddKafka(KafkaConnection.Create(kafkaBootstrapServers, kafkaIsPlaintext))
             .Bind<Customer>(customerTopic)
             .Bind<Card>(cardTopic)
             .Bind<CustomerNotification>(customerEventsTopic)

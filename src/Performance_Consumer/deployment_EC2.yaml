@@ -1,7 +1,9 @@
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: kafka-consumer-deployment
+  namespace: kafka-ec2
 spec:
   replicas: 1
   selector:
@@ -14,7 +16,7 @@ spec:
     spec:
       containers:
       - name: kafka-consumer
-        image: ivanmds/kafka_consumer:1.0.0
+        image: ivanmds/kafka_consumer:1.0.1
         resources:
           requests:
             cpu: "250m"
@@ -22,3 +24,6 @@ spec:
           limits:
             cpu: "500m"
             memory: "512Mi"
+        env:
+          - name: Kafka_BootstrapServers
+            value: "b-3.kafkaec2poc01.jk0sfh.c12.kafka.us-west-2.amazonaws.com:9092,b-2.kafkaec2poc01.jk0sfh.c12.kafka.us-west-2.amazonaws.com:9092,b-1.kafkaec2poc01.jk0sfh.c12.kafka.us-west-2.amazonaws.com:9092"
