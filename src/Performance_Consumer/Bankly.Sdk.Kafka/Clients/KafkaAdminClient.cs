@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Bankly.Sdk.Kafka.Configuration;
+﻿using Bankly.Sdk.Kafka.Configuration;
 using Confluent.Kafka;
 using Confluent.Kafka.Admin;
 
@@ -21,6 +18,11 @@ namespace Bankly.Sdk.Kafka.Clients
             };
 
             _adminClient = new AdminClientBuilder(config).Build();
+
+            SettingNumOfPartitionAsync("bankly.account.customers.create_customer.request",
+                                       "bankly.event.account.customers",
+                                       "bankly.card.cards.create_card.request")
+                                       .Wait();
         }
 
         public async Task PutTopicAsync(string topicName)
@@ -43,6 +45,29 @@ namespace Bankly.Sdk.Kafka.Clients
                     NumPartitions = 1
                 };
                 yield return topicSpec;
+            }
+        }
+
+        private async Task SettingNumOfPartitionAsync(params string[] topicNames)
+        {
+            var partitionSpec = GetPartitionSpec(topicNames).ToList();
+
+            foreach (var spec in partitionSpec.ToList())
+            {
+                var metadata = _adminClient.GetMetadata(spec.Topic, TimeSpan.FromSeconds(10));
+                if (metadata == null || metadata.Topics[0].Partitions.Count() >= spec.IncreaseTo)
+                    partitionSpec.Remove(spec);
+            }
+
+            if (partitionSpec?.Count > 0)
+                await _adminClient.CreatePartitionsAsync(partitionSpec);
+        }
+
+        private IEnumerable<PartitionsSpecification> GetPartitionSpec(params string[] topicNames)
+        {
+            foreach (var topic in topicNames)
+            {
+                yield return new PartitionsSpecification { Topic = topic, IncreaseTo = 50 };
             }
         }
 

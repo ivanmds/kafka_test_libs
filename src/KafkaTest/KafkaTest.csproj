@@ -15,6 +15,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Kafka\Bankly.Sdk.Kafka.csproj" />
+    <ProjectReference Include="..\Bankly.Sdk.Kafka\Bankly.Sdk.Kafka.csproj" />
   </ItemGroup>
 </Project>

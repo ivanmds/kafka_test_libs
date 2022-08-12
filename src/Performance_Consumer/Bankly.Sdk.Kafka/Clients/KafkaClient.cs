@@ -1,14 +1,11 @@
 ﻿using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Confluent.Kafka;
 using Bankly.Sdk.Kafka.Configuration;
 using Bankly.Sdk.Kafka.DefaultValues;
+using Bankly.Sdk.Kafka.Exceptions;
 using Bankly.Sdk.Kafka.Notifications;
 using Bankly.Sdk.Kafka.Values;
+using Confluent.Kafka;
 using Newtonsoft.Json;
-using System;
-using Bankly.Sdk.Kafka.Exceptions;
 
 namespace Bankly.Sdk.Kafka.Clients
 {
@@ -22,7 +19,7 @@ namespace Bankly.Sdk.Kafka.Clients
             var producerConfig = new ProducerConfig
             {
                 BootstrapServers = kafkaConnection.BootstrapServers,
-                SecurityProtocol = kafkaConnection.IsPlaintext ? SecurityProtocol.Plaintext : SecurityProtocol.Ssl
+                SecurityProtocol = kafkaConnection.IsPlaintext ? SecurityProtocol.Plaintext : SecurityProtocol.Ssl,
             };
 
             _kafkaProducer = new ProducerBuilder<string, string>(producerConfig).Build();

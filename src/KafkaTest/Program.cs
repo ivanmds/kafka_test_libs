@@ -17,8 +17,8 @@ builder.Services.AddSwaggerGen();
 var topicNameCustomerEvent = BuilderName.GetTopicName(true, Context.Account, "customers");
 var topicNameCardEvent = BuilderName.GetTopicName(true, Context.Card, "Cards");
 
-//var consumerBuilder = builder.Services.AddKafka(KafkaConnection.Create("b-2.acsstg-msk.z25ji9.c7.kafka.us-east-1.amazonaws.com:9092,b-1.acsstg-msk.z25ji9.c7.kafka.us-east-1.amazonaws.com:9092,b-3.acsstg-msk.z25ji9.c7.kafka.us-east-1.amazonaws.com:9092"));
-var consumerBuilder = builder.Services.AddKafka(KafkaConnection.Create("localhost:9092"))
+var connection = "localhost:9092";
+var consumerBuilder = builder.Services.AddKafka(KafkaConnection.Create(connection))
         .AddSkippedMessage<SkippedMessage>()
         .AddConsumerErrorFatal<ConsumerErrorFatal>()
         .Bind<CustomerNotification>(topicNameCustomerEvent)

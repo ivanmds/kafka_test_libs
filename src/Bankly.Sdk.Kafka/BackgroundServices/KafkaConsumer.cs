@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
+
 namespace Bankly.Sdk.Kafka.BackgroundServices
 {
     internal class KafkaConsumer : IDisposable
@@ -44,13 +45,13 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                 {
                     while (!stoppingToken.IsCancellationRequested)
                     {
-                        var result = _consumer.Consume(stoppingToken);
+                        var consume = _consumer.Consume(stoppingToken);
 
-                        if (result is null)
+                        if (consume is null)
                             continue;
 
-                        var msgBody = result.Message.Value;
-                        var header = KafkaConsumerHelper.ParseHeader(result.Message.Headers);
+                        var msgBody = consume.Message.Value;
+                        var header = KafkaConsumerHelper.ParseHeader(consume.Message.Headers);
 
                         var consumerKey = _listenerConfiguration.GetConsumerKey(GetEventName(header, msgBody));
                         var consumerType = Binds.GetType(consumerKey);
@@ -60,7 +61,9 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                         try
                         {
                             if (consumerClient is null)
+                            {
                                 await MessageSkippedAsync(scope, msgBody, header, stoppingToken);
+                            }
                             else
                             {
                                 var delay = header.GetRetryAt();
@@ -84,11 +87,11 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                                 }
 
                                 AfterConsume(consumerType, consumerClient, header, msgParsed);
-                                _consumer.Commit();
                             }
                         }
                         catch (Exception ex)
                         {
+                            _logger.LogError(ex, ex.Message);
                             header.AddWillRetry(willRetry);
                             await MessageErrorAsync(consumerType, consumerClient, msgBody, header, ex, stoppingToken);
                         }
@@ -204,8 +207,6 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
 
         private async Task MessageSkippedAsync(IServiceScope scope, string msgBody, HeaderValue header, CancellationToken stoppingToken)
         {
-            _consumer.Commit();
-
             var context = ConsumeContext.Create(header);
             var skippedConsumer = scope.ServiceProvider.GetService<ISkippedMessage>();
             if (skippedConsumer != null)
@@ -219,8 +220,6 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
 
         private async Task MessageErrorAsync(Type consumerType, object consumerClient, string msgBody, HeaderValue header, Exception ex, CancellationToken stoppingToken)
         {
-            _consumer.Commit();
-
             var context = ConsumeContext.Create(header);
             if (header.GetWillRetry() is false)
             {

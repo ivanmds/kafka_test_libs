@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: alb-ingress-controller
+  name: alb-ingress-controller
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: alb-ingress-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: alb-ingress-controller
+    spec:
+      containers:
+      - name: alb-ingress-controller
+        args:
+        - --ingress-class=alb
+        - --cluster-name=kube-poc-04
+        - --aws-vpc-id=vpc-0c19d0137e72fac53
+        - --aws-region=us-west-2
+        image: provjeremydyche/alb-ingress-controller
+      serviceAccountName: alb-ingress-controller

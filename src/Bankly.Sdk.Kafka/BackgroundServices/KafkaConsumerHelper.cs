@@ -29,13 +29,16 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
         {
             var maxPollIntervalMs = listenerConfiguration.RetryTime is null ? DEFAULT_MAX_POLL_INTERVALS_MS
                 : listenerConfiguration.RetryTime.GetMilliseconds + DEFAULT_MAX_POLL_INTERVALS_MS;
+            var kafkaConnection = listenerConfiguration.KafkaBuilder.KafkaConnection;
 
             return new ConsumerConfig
             {
                 GroupId = listenerConfiguration.GroupId,
-                BootstrapServers = listenerConfiguration.KafkaBuilder.KafkaConnection.BootstrapServers,
-                AutoOffsetReset = AutoOffsetReset.Earliest,
-                EnableAutoCommit = false,
+                BootstrapServers = kafkaConnection.BootstrapServers,
+                SecurityProtocol = kafkaConnection.IsPlaintext ? SecurityProtocol.Plaintext : SecurityProtocol.Ssl,
+                AutoOffsetReset = AutoOffsetReset.Latest,
+                //EnableAutoCommit = false,
+                AutoCommitIntervalMs = 500,
                 MaxPollIntervalMs = maxPollIntervalMs
             };
         }

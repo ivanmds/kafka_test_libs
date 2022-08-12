@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-default
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+spec:
+  ingressClassName: alb
+  rules:
+    - host: kafka.kube-test.acessobank-stg.com.br
+      http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: kafdrop-service
+              port:
+                number: 80
+    - host: kafka-ui.kube-test.acessobank-stg.com.br
+      http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: kafka-ui-service
+              port:
+                number: 80
+  

@@ -14,8 +14,13 @@ namespace Performance_Consumer
 
         public override async Task ConsumeAsync(ConsumeContext context, Card message)
         {
-            _logger.LogInformation($"CardConsumer proxy: {message.Proxy}");
+            //_logger.LogInformation($"CardConsumer proxy: {message.Proxy}");
             await Task.Delay(150);
+        }
+
+        public override void ErrorConsume(ConsumeContext context, Exception ex)
+        {
+            _logger.LogError(ex, "CardConsumer_ErrorConsume");
         }
     }
 }

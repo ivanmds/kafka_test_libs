@@ -3,9 +3,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: kafka-consumer-deployment
-  namespace: kafka-ec2
+  namespace: kafka-serverless
 spec:
-  replicas: 50
+  replicas: 1
   selector:
     matchLabels:
       app: kafka-consumer
@@ -14,18 +14,19 @@ spec:
       labels:
         app: kafka-consumer
     spec:
+      serviceAccountName: eks-gargate-pods
       containers:
       - name: kafka-consumer
-        image: ivanmds2/kafka_consumer:1.0.13
+        image: ivanmds/kafka_consumer:1.0.4
         resources:
           requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
             cpu: "500m"
             memory: "512Mi"
-          limits:
-            cpu: "1000m"
-            memory: "1024Mi"
         env:
           - name: Kafka_BootstrapServers
-            value: "b-3.kafkaec2poc01.jk0sfh.c12.kafka.us-west-2.amazonaws.com:9092,b-2.kafkaec2poc01.jk0sfh.c12.kafka.us-west-2.amazonaws.com:9092,b-1.kafkaec2poc01.jk0sfh.c12.kafka.us-west-2.amazonaws.com:9092"
+            value: "boot-of1lgvp8.c3.kafka-serverless.us-west-2.amazonaws.com:9098"
           - name: Kafka_IsPlaintext
-            value: "true"
+            value: "false"

@@ -2,6 +2,7 @@ using Bankly.Sdk.Kafka;
 using Bankly.Sdk.Kafka.Configuration;
 using Bankly.Sdk.Kafka.Notifications;
 using Performance_Consumer;
+using Performance_Consumer.Alerts;
 
 IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices(services =>
@@ -20,8 +21,9 @@ IHost host = Host.CreateDefaultBuilder(args)
 
         var kafkaBootstrapServers = configuration.GetValue<string>("Kafka_BootstrapServers");
         var kafkaIsPlaintext = configuration.GetValue<bool>("Kafka_IsPlaintext");
-        
+
         var consumerBuilder = services.AddKafka(KafkaConnection.Create(kafkaBootstrapServers, kafkaIsPlaintext))
+            .AddConsumerErrorFatal<CriticalErrorConsumer>()
             .GetConsumerBuilder();
 
         var retry = RetryConfiguration.Create()
@@ -33,7 +35,7 @@ IHost host = Host.CreateDefaultBuilder(args)
             .AddConsumer<CustomerConsumer>();
 
         var groupCustomerEvents = BuilderName.GetGroupIdName("performance_test", "customer_events");
-        consumerBuilder.CreateListener(customerTopic, groupCustomerEvents, retry)
+        consumerBuilder.CreateListener(customerEventsTopic, groupCustomerEvents, retry)
             .AddConsumer<CustomerNotificationConsumer>("CUSTOMER_WAS_CREATED")
             .AddConsumer<CustomerNotificationConsumer>("CUSTOMER_WAS_UPDATED");
 

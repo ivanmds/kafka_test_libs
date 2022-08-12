@@ -13,8 +13,13 @@ namespace Performance_Consumer
 
         public override async Task ConsumeAsync(ConsumeContext context, CustomerNotification message)
         {
-            _logger.LogInformation($"CustomerNotificationConsumer id:{message.EntityId}");
+            //_logger.LogInformation($"CustomerNotificationConsumer id:{message.EntityId}");
             await Task.Delay(70);
+        }
+
+        public override void ErrorConsume(ConsumeContext context, Exception ex)
+        {
+            _logger.LogError(ex, "CustomerNotificationConsumer_ErrorConsume");
         }
     }
 }

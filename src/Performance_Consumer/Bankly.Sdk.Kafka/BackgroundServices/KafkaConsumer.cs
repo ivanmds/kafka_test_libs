@@ -1,14 +1,9 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Bankly.Sdk.Kafka.Configuration;
+﻿using Bankly.Sdk.Kafka.Configuration;
 using Bankly.Sdk.Kafka.Consumers;
 using Bankly.Sdk.Kafka.DefaultValues;
 using Bankly.Sdk.Kafka.Notifications;
 using Bankly.Sdk.Kafka.Values;
 using Confluent.Kafka;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace Bankly.Sdk.Kafka.BackgroundServices
@@ -44,13 +39,13 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                 {
                     while (!stoppingToken.IsCancellationRequested)
                     {
-                        var result = _consumer.Consume(stoppingToken);
+                        var consume = _consumer.Consume(stoppingToken);
 
-                        if (result is null)
+                        if (consume is null)
                             continue;
 
-                        var msgBody = result.Message.Value;
-                        var header = KafkaConsumerHelper.ParseHeader(result.Message.Headers);
+                        var msgBody = consume.Message.Value;
+                        var header = KafkaConsumerHelper.ParseHeader(consume.Message.Headers);
 
                         var consumerKey = _listenerConfiguration.GetConsumerKey(GetEventName(header, msgBody));
                         var consumerType = Binds.GetType(consumerKey);
@@ -60,7 +55,10 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                         try
                         {
                             if (consumerClient is null)
+                            {
+                                _consumer.Commit();
                                 await MessageSkippedAsync(scope, msgBody, header, stoppingToken);
+                            }
                             else
                             {
                                 var delay = header.GetRetryAt();
@@ -89,15 +87,25 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                         }
                         catch (Exception ex)
                         {
-                            header.AddWillRetry(willRetry);
-                            await MessageErrorAsync(consumerType, consumerClient, msgBody, header, ex, stoppingToken);
+                            bool shouldBeNotIgnored = ex.Message.Contains("No offset stored") is false;
+                            if (shouldBeNotIgnored)
+                            {
+                                header.AddWillRetry(willRetry);
+
+                                _consumer.Commit();
+                                await MessageErrorAsync(consumerType, consumerClient, msgBody, header, ex, stoppingToken);
+                            }
+                            else
+                            {
+                                _logger.LogWarning(ex, ex.Message);
+                            }
                         }
                     }
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Consumer from processId {processId} died, topic {_listenerConfiguration.TopicName} without consumer.");
+                _logger.LogError(ex, $"Consumer from processId {processId} died, topic {_listenerConfiguration.TopicName} without consumer.");
                 _consumer.Unsubscribe();
                 _consumer.Dispose();
                 ConsumerErrorFatal(scope, ex);
@@ -204,8 +212,6 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
 
         private async Task MessageSkippedAsync(IServiceScope scope, string msgBody, HeaderValue header, CancellationToken stoppingToken)
         {
-            _consumer.Commit();
-
             var context = ConsumeContext.Create(header);
             var skippedConsumer = scope.ServiceProvider.GetService<ISkippedMessage>();
             if (skippedConsumer != null)
@@ -219,8 +225,6 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
 
         private async Task MessageErrorAsync(Type consumerType, object consumerClient, string msgBody, HeaderValue header, Exception ex, CancellationToken stoppingToken)
         {
-            _consumer.Commit();
-
             var context = ConsumeContext.Create(header);
             if (header.GetWillRetry() is false)
             {

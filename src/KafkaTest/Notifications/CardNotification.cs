@@ -18,5 +18,9 @@ namespace KafkaTest.Notifications
         public IDictionary<string, object> Metadata { get; set; }
 
         public Card Data { get; set; }
+
+        public Guid? IdempotencyKey { get; set; }
+
+        public Guid? CorrelationId { get; set; }
     }
 }

@@ -49,6 +49,9 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                         if (result is null)
                             continue;
 
+
+                        var topicPartitionOffset = result.TopicPartitionOffset;
+
                         var msgBody = result.Message.Value;
                         var header = KafkaConsumerHelper.ParseHeader(result.Message.Headers);
 
@@ -60,7 +63,10 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                         try
                         {
                             if (consumerClient is null)
+                            {
+                                _consumer.StoreOffset(topicPartitionOffset);
                                 await MessageSkippedAsync(scope, msgBody, header, stoppingToken);
+                            }
                             else
                             {
                                 var delay = header.GetRetryAt();
@@ -84,12 +90,13 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                                 }
 
                                 AfterConsume(consumerType, consumerClient, header, msgParsed);
-                                _consumer.Commit();
+                                _consumer.StoreOffset(topicPartitionOffset);
                             }
                         }
                         catch (Exception ex)
                         {
                             header.AddWillRetry(willRetry);
+                            _consumer.StoreOffset(topicPartitionOffset);
                             await MessageErrorAsync(consumerType, consumerClient, msgBody, header, ex, stoppingToken);
                         }
                     }
@@ -204,8 +211,6 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
 
         private async Task MessageSkippedAsync(IServiceScope scope, string msgBody, HeaderValue header, CancellationToken stoppingToken)
         {
-            _consumer.Commit();
-
             var context = ConsumeContext.Create(header);
             var skippedConsumer = scope.ServiceProvider.GetService<ISkippedMessage>();
             if (skippedConsumer != null)
@@ -219,8 +224,6 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
 
         private async Task MessageErrorAsync(Type consumerType, object consumerClient, string msgBody, HeaderValue header, Exception ex, CancellationToken stoppingToken)
         {
-            _consumer.Commit();
-
             var context = ConsumeContext.Create(header);
             if (header.GetWillRetry() is false)
             {

@@ -7,5 +7,6 @@ services:
       context: .
       dockerfile: src/Performance_Producer/Dockerfile
     environment:
-      Kafka_BootstrapServers: "test"
+      Kafka_BootstrapServers: "boot-of1lgvp8.c3.kafka-serverless.us-west-2.amazonaws.com:9098"
+      Kafka_IsPlaintext: "false"
         
