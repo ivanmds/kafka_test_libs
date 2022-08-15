@@ -8,6 +8,7 @@ using Bankly.Sdk.Kafka.Notifications;
 using Bankly.Sdk.Kafka.Values;
 using Confluent.Kafka;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
@@ -22,8 +23,15 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
         private readonly IConsumer<string, string> _consumer;
         private readonly ILogger _logger;
         private bool _disposedValue;
+        private bool _willStop = false;
+        private bool _isProcessing = false;
 
-        internal KafkaConsumer(IServiceProvider provider, ListenerConfiguration listenerConfiguration, IProducerMessage producerMessage, ILogger logger)
+        internal KafkaConsumer(
+            IServiceProvider provider,
+            ListenerConfiguration listenerConfiguration,
+            IProducerMessage producerMessage,
+            ILogger logger,
+            IHostApplicationLifetime hostApplicationLifetime)
         {
             _provider = provider;
             _listenerConfiguration = listenerConfiguration;
@@ -33,6 +41,23 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
             _consumer = new ConsumerBuilder<string, string>(config).Build();
             _consumer.Subscribe(_listenerConfiguration.TopicName);
             _logger = logger;
+
+            hostApplicationLifetime.ApplicationStopping.Register(async () =>
+            {
+                _logger.LogWarning($"Consumer from topic {_listenerConfiguration.TopicName} will shutdown");
+                _willStop = true;
+
+                while (_isProcessing)
+                {
+                    await Task.Delay(250);
+                }
+
+                _consumer.Unassign();
+            });
+
+            hostApplicationLifetime.ApplicationStopped.Register(() => {
+                _logger.LogWarning($"Consumer from topic {_listenerConfiguration.TopicName} shutdown");
+            });
         }
 
         public async Task ExecuteAsync(string processId, CancellationToken stoppingToken)
@@ -43,18 +68,18 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                 _logger.LogInformation($"Consumer from processId {processId} was started. Process listening topic {_listenerConfiguration.TopicName}.");
                 await Task.Run(async () =>
                 {
-                    while (!stoppingToken.IsCancellationRequested)
+                    while (!stoppingToken.IsCancellationRequested && !_willStop)
                     {
                         var consume = _consumer.Consume(stoppingToken);
 
                         if (consume is null)
                             continue;
 
+                        _isProcessing = true;
                         var msgBody = consume.Message.Value;
                         var header = KafkaConsumerHelper.ParseHeader(consume.Message.Headers);
 
-                        var consumerKey = _listenerConfiguration.GetConsumerKey(GetEventName(header, msgBody));
-                        var consumerType = Binds.GetType(consumerKey);
+                        var consumerType = GetConsumerType(header, msgBody);
                         var consumerClient = consumerType == null ? null : scope.ServiceProvider.GetService(consumerType);
                         var willRetry = false;
 
@@ -62,6 +87,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                         {
                             if (consumerClient is null)
                             {
+                                _consumer.Commit();
                                 await MessageSkippedAsync(scope, msgBody, header, stoppingToken);
                             }
                             else
@@ -87,25 +113,50 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                                 }
 
                                 AfterConsume(consumerType, consumerClient, header, msgParsed);
+                                _consumer.Commit();
                             }
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, ex.Message);
-                            header.AddWillRetry(willRetry);
-                            await MessageErrorAsync(consumerType, consumerClient, msgBody, header, ex, stoppingToken);
+                            bool shouldBeNotIgnored = ex.Message.Contains("No offset stored") is false;
+                            if (shouldBeNotIgnored)
+                            {
+                                header.AddWillRetry(willRetry);
+
+                                _consumer.Commit();
+                                await MessageErrorAsync(consumerType, consumerClient, msgBody, header, ex, stoppingToken);
+                            }
+                            else
+                            {
+                                _logger.LogWarning(ex, ex.Message);
+                            }
                         }
+                        _isProcessing = false;
                     }
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Consumer from processId {processId} died, topic {_listenerConfiguration.TopicName} without consumer.");
-                _consumer.Unsubscribe();
+                _logger.LogError(ex, $"Consumer from processId {processId} died, topic {_listenerConfiguration.TopicName} without consumer.");
+                _consumer.Unassign();
                 _consumer.Dispose();
                 ConsumerErrorFatal(scope, ex);
                 throw ex;
             }
+        }
+
+        private Type GetConsumerType(HeaderValue header, string msgBody)
+        {
+            var consumerKey = _listenerConfiguration.GetConsumerKey(GetEventName(header, msgBody));
+            var consumerType = Binds.GetType(consumerKey);
+
+            if(consumerType == null)
+            {
+                consumerKey = _listenerConfiguration.GetConsumerKey(string.Empty);
+                consumerType = Binds.GetType(consumerKey);
+            }
+
+            return consumerType;
         }
 
         private string GetEventName(HeaderValue header, string msgBody)

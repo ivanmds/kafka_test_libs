@@ -5,7 +5,7 @@ metadata:
   name: kafka-consumer-deployment
   namespace: kafka-ec2
 spec:
-  replicas: 50
+  replicas: 4
   selector:
     matchLabels:
       app: kafka-consumer
@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: kafka-consumer
-        image: ivanmds2/kafka_consumer:1.0.13
+        image: ivanmds2/kafka_consumer:1.0.23
         resources:
           requests:
             cpu: "500m"

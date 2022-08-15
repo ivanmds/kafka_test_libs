@@ -33,7 +33,7 @@ namespace KafkaTest.Controllers
             header.PutKeyValue("test_another_head", "yes, It´s work");
 
             var customer = GetCustomer();
-            await _producerMessage.ProduceAsync("test.temp", "001", customer, header);
+            await _producerMessage.ProduceAsync("test.temp", customer, header);
 
             return Enumerable.Range(1, 5).Select(index => new WeatherForecast
             {

@@ -27,8 +27,7 @@ var consumerBuilder = builder.Services.AddKafka(KafkaConnection.Create(connectio
 
 
 var retry = RetryConfiguration.Create()
-    .Add(RetryTime.Create(2))
-    .Add(RetryTime.Create(15));
+    .Add(RetryTime.Create(2));
 
 var groupId = BuilderName.GetGroupIdName("test_kafka", "customer_events");
 consumerBuilder.CreateListener("bankly.event.account.customers", groupId, retry)

@@ -36,9 +36,8 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                 GroupId = listenerConfiguration.GroupId,
                 BootstrapServers = kafkaConnection.BootstrapServers,
                 SecurityProtocol = kafkaConnection.IsPlaintext ? SecurityProtocol.Plaintext : SecurityProtocol.Ssl,
-                AutoOffsetReset = AutoOffsetReset.Latest,
+                AutoOffsetReset = AutoOffsetReset.Earliest,
                 EnableAutoCommit = false,
-                //AutoCommitIntervalMs = 500,
                 MaxPollIntervalMs = maxPollIntervalMs
             };
         }

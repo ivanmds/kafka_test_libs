@@ -18,11 +18,6 @@ namespace Bankly.Sdk.Kafka.Clients
             };
 
             _adminClient = new AdminClientBuilder(config).Build();
-
-            SettingNumOfPartitionAsync("bankly.account.customers.create_customer.request",
-                                       "bankly.event.account.customers",
-                                       "bankly.card.cards.create_card.request")
-                                       .Wait();
         }
 
         public async Task PutTopicAsync(string topicName)

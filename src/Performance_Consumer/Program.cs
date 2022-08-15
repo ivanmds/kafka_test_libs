@@ -31,7 +31,7 @@ IHost host = Host.CreateDefaultBuilder(args)
             .Add(RetryTime.Create(30));
 
         var groupCustomerRequestId = BuilderName.GetGroupIdName("performance_test", "customer_request");
-        consumerBuilder.CreateListener(customerTopic, groupCustomerRequestId, retry)
+        consumerBuilder.CreateListener(customerTopic, groupCustomerRequestId)
             .AddConsumer<CustomerConsumer>();
 
         var groupCustomerEvents = BuilderName.GetGroupIdName("performance_test", "customer_events");

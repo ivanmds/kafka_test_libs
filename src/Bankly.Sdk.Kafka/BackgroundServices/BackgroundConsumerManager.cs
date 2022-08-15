@@ -20,8 +20,14 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
         private readonly IProducerMessage _producerMessage;
         private readonly IKafkaAdminClient _kafkaAdminClient;
         private readonly ILogger<BackgroundConsumerManager> _logger;
+        private readonly IHostApplicationLifetime _hostApplicationLifetime;
 
-        public BackgroundConsumerManager(IServiceProvider provider, IRegistryListenerService registryListenerService, IKafkaAdminClient kafkaAdminClient, ILogger<BackgroundConsumerManager> logger)
+        public BackgroundConsumerManager(
+            IServiceProvider provider, 
+            IRegistryListenerService registryListenerService,
+            IKafkaAdminClient kafkaAdminClient,
+            ILogger<BackgroundConsumerManager> logger,
+            IHostApplicationLifetime hostApplicationLifetime)
         {
             _provider = provider;
             _registryListenerService = registryListenerService;
@@ -30,6 +36,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
             _kafkaAdminClient = kafkaAdminClient;
             _topicNames = new List<string>();
             _logger = logger;
+            _hostApplicationLifetime = hostApplicationLifetime;
         }
 
         public override async Task StartAsync(CancellationToken cancellationToken)
@@ -69,7 +76,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
 
         private Task CreateConsumerProcess(string processId, ListenerConfiguration listener, CancellationToken cancellationToken)
         {
-            var kafkaConsumer = new KafkaConsumer(_provider, listener, _producerMessage, _logger);
+            var kafkaConsumer = new KafkaConsumer(_provider, listener, _producerMessage, _logger, _hostApplicationLifetime);
             var task = kafkaConsumer.ExecuteAsync(processId, cancellationToken);
             task.ContinueWith(ConsumerContinueWith);
 
