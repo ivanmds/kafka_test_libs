@@ -16,9 +16,7 @@ namespace Bankly.Sdk.Kafka
 
         public static void AddType(string key, Type value)
         {
-            if (_bindStringType.ContainsKey(key))
-                throw new ArgumentException($"The key {key} alreay registered");
-            else
+            if (!_bindStringType.ContainsKey(key))
                 _bindStringType.Add(key, value);
         }
 

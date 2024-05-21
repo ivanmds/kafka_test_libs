@@ -1,7 +1,9 @@
-﻿using System.Text;
+using System.Text;
 using Bankly.Sdk.Kafka.Configuration;
+using Bankly.Sdk.Kafka.Exceptions;
 using Bankly.Sdk.Kafka.Values;
 using Confluent.Kafka;
+using Confluent.SchemaRegistry;
 
 namespace Bankly.Sdk.Kafka.BackgroundServices
 {
@@ -13,10 +15,10 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
         {
             var headerValue = HeaderValue.Create();
 
-            if (headers is null)
+            if(headers is null)
                 return headerValue;
 
-            foreach (var kv in headers)
+            foreach(var kv in headers)
             {
                 var value = Encoding.Default.GetString(kv.GetValueBytes());
                 headerValue.PutKeyValue(kv.Key, value);
@@ -29,8 +31,8 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
         {
             var maxPollIntervalMs = listenerConfiguration.RetryTime is null ? DEFAULT_MAX_POLL_INTERVALS_MS
                 : listenerConfiguration.RetryTime.GetMilliseconds + DEFAULT_MAX_POLL_INTERVALS_MS;
-            var kafkaConnection = listenerConfiguration.KafkaBuilder.KafkaConnection;
 
+            var kafkaConnection = listenerConfiguration.KafkaBuilder.KafkaConnection;
             return new ConsumerConfig
             {
                 GroupId = listenerConfiguration.GroupId,
@@ -40,6 +42,19 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
                 EnableAutoCommit = false,
                 MaxPollIntervalMs = maxPollIntervalMs
             };
+        }
+
+        internal static CachedSchemaRegistryClient GetCachedSchemaRegistryClient(ListenerConfiguration listenerConfiguration)
+        {
+            var kafkaConnection = listenerConfiguration.KafkaBuilder.KafkaConnection;
+
+            if(string.IsNullOrEmpty(kafkaConnection.UrlSchemaRegistryServer))
+                throw new ConnectionSchemaRegistryServerException("Should be informed url to cluster schema registry");
+
+            return new CachedSchemaRegistryClient(new SchemaRegistryConfig
+            {
+                Url = kafkaConnection.UrlSchemaRegistryServer
+            });
         }
     }
 }

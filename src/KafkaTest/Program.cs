@@ -1,8 +1,7 @@
+using Bankly.Sdk.Contracts.Enums;
 using Bankly.Sdk.Kafka;
 using Bankly.Sdk.Kafka.Configuration;
-using Bankly.Sdk.Kafka.Notifications;
 using KafkaTest.Consumers;
-using KafkaTest.Notifications;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,26 +14,26 @@ builder.Services.AddSwaggerGen();
 
 
 var topicNameCustomerEvent = BuilderName.GetTopicName(true, Context.Account, "customers");
-var topicNameCardEvent = BuilderName.GetTopicName(true, Context.Card, "Cards");
+//var topicNameCardEvent = BuilderName.GetTopicName(true, Context.Card, "Cards");
 
 var connection = "localhost:9092";
 var consumerBuilder = builder.Services.AddKafka(KafkaConnection.Create(connection))
-        .AddSkippedMessage<SkippedMessage>()
-        .AddConsumerErrorFatal<ConsumerErrorFatal>()
-        .Bind<CustomerNotification>(topicNameCustomerEvent)
-        .Bind<CardNotification>(topicNameCardEvent)
+        //.AddSkippedMessage<SkippedMessage>()
+        //.AddConsumerErrorFatal<ConsumerErrorFatal>()
+        //.Bind<CustomerNotification>(topicNameCustomerEvent)
+        //.Bind<CardNotification>(topicNameCardEvent)
         .GetConsumerBuilder();
 
 
-var retry = RetryConfiguration.Create()
-    .Add(RetryTime.Create(2));
+//var retry = RetryConfiguration.Create()
+//    .Add(RetryTime.Create(2));
 
-var groupId = BuilderName.GetGroupIdName("test_kafka", "customer_events");
-consumerBuilder.CreateListener("bankly.event.account.customers", groupId, retry)
-    .AddConsumer<CustomerCreatedConsumer>("CUSTOMER_WAS_CREATED")
-    .AddConsumer<CustomerUpdatedConsumer>("CUSTOMER_WAS_UPDATED");
+//var groupId = BuilderName.GetGroupIdName("test_kafka", "customer_events");
+//consumerBuilder.CreateListener("bankly.event.account.customers", groupId, retry)
+//    .AddConsumer<CustomerCreatedConsumer>("CUSTOMER_WAS_CREATED")
+//    .AddConsumer<CustomerUpdatedConsumer>("CUSTOMER_WAS_UPDATED");
 
-consumerBuilder.CreateListener("test.temp", "anothers_consumer")
+consumerBuilder.CreateListener("isa_hello", "anothers_consumer")
     .AddConsumer<AnotherConsumer>();
 
 

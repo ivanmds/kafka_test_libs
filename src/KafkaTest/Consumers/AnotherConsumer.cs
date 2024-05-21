@@ -1,5 +1,6 @@
 ﻿using Bankly.Sdk.Kafka.Consumers;
 using KafkaTest.Models;
+using Newtonsoft.Json;
 
 namespace KafkaTest.Consumers
 {
@@ -7,7 +8,8 @@ namespace KafkaTest.Consumers
     {
         public override async Task ConsumeAsync(ConsumeContext context, Customer message)
         {
-            Console.WriteLine(message);
+            var msg = JsonConvert.SerializeObject(message);
+            Console.WriteLine(msg);
         }
     }
 

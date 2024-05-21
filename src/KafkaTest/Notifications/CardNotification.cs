@@ -1,4 +1,5 @@
-﻿using Bankly.Sdk.Kafka.Notifications;
+﻿using Bankly.Sdk.Contracts.Enums;
+using Bankly.Sdk.Contracts.Events;
 using KafkaTest.Models;
 
 namespace KafkaTest.Notifications
@@ -22,5 +23,12 @@ namespace KafkaTest.Notifications
         public Guid? IdempotencyKey { get; set; }
 
         public Guid? CorrelationId { get; set; }
+
+        public IEnumerable<License>? Licenses { get; set; }
+
+        public Guid? LicenseUuid { get; set; }
+
+        public string Version { get; set; }
+
     }
 }

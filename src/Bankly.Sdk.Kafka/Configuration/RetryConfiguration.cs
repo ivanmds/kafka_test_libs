@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using Bankly.Sdk.Kafka.Exceptions;
 
 namespace Bankly.Sdk.Kafka.Configuration
@@ -6,23 +7,66 @@ namespace Bankly.Sdk.Kafka.Configuration
     public class RetryConfiguration
     {
         private readonly List<RetryTime> _retryTimes = new List<RetryTime>();
+        private readonly List<string> _when = new List<string>();
+        private readonly List<string> _whenNot = new List<string>();
 
         public RetryConfiguration Add(RetryTime retryTime)
         {
-            if (_retryTimes.Count > 5)
+            if(_retryTimes.Count > 5)
                 throw new MaxRetryTimeConfiguredException("Inform until 5 retryTime");
 
-            if (_retryTimes.Contains(retryTime))
+            if(_retryTimes.Contains(retryTime))
                 throw new DuplicatedRetryTimeException($"The retryTime {retryTime.Seconds}s already informed.");
 
             _retryTimes.Add(retryTime);
             return this;
         }
 
-        internal RetryTime GetRetryTimeByAttempt(int attempt)
+        public RetryConfiguration When<TException>() where TException : Exception
         {
-            if (attempt <= 0 || attempt > _retryTimes.Count)
-                throw new System.Exception("Attempt invalid");
+            var exception = typeof(TException);
+            var exceptionFullName = exception.FullName;
+
+            if(_whenNot.Count > 0)
+                throw new WhenRetryConflitException("The configuration to 'whenNot' alread started.");
+
+            if(_when.Contains(exceptionFullName))
+                throw new WhenRetryConflitException($"The {exception.GetType().FullName} already configured.");
+
+            _when.Add(exceptionFullName);
+
+            return this;
+        }
+
+        public RetryConfiguration WhenNot<TException>() where TException : Exception
+        {
+            var exception = typeof(TException);
+            var exceptionFullName = exception.FullName;
+
+            if(_when.Count > 0)
+                throw new WhenRetryConflitException("The configuration to 'when' alread started.");
+
+            if(_whenNot.Contains(exceptionFullName))
+                throw new WhenRetryConflitException($"The {exception.GetType().FullName} already configured.");
+
+            _whenNot.Add(exceptionFullName);
+
+            return this;
+        }
+
+        internal RetryTime GetValidRetryTime(int attempt, Exception ex)
+        {
+            var exception = ex.InnerException ?? ex;
+            var exceptionFullName = exception.GetType().FullName;
+
+            if(_when.Count > 0 && _whenNot.Count == 0 && _when.Contains(exceptionFullName) == false)
+                return null;
+
+            if(_whenNot.Count > 0 && _when.Count == 0 && _whenNot.Contains(exceptionFullName))
+                return null;
+
+            if(attempt <= 0 || attempt > _retryTimes.Count)
+                throw new Exception("Attempt invalid");
 
             var index = attempt - 1;
 
@@ -43,7 +87,6 @@ namespace Bankly.Sdk.Kafka.Configuration
         }
 
         public int Seconds { get; private set; }
-
         public int GetMilliseconds => Seconds * 1000;
 
         public static RetryTime Create(int seconds)

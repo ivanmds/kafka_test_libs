@@ -1,6 +1,6 @@
-﻿using System.Threading;
+using System.Threading;
 using System.Threading.Tasks;
-using Bankly.Sdk.Kafka.Notifications;
+using Bankly.Sdk.Contracts.Events;
 using Bankly.Sdk.Kafka.Values;
 
 namespace Bankly.Sdk.Kafka

@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Bankly.Sdk.Kafka.DefaultValues;
 
 namespace Bankly.Sdk.Kafka.Values
@@ -19,6 +20,21 @@ namespace Bankly.Sdk.Kafka.Values
         public string GetCorrelationId()
           => GetValue(DefaultHeader.KeyCorrelationId);
 
+        public void AddCompanykey(string value)
+            => PutKeyValue(KeyValue.Create(DefaultHeader.KeyCompanyKey, value));
+
+        public string GetCompanykey()
+            => GetValue(DefaultHeader.KeyCompanyKey);
+
+        internal string GetCompanyKeyInternal()
+        {
+            var companyKey = GetCompanykey();
+            if(string.IsNullOrEmpty(companyKey))
+                companyKey = "none";
+
+            return companyKey;
+        }
+
         public void AddResponseTopic(string topicName)
             => PutKeyValue(KeyValue.Create(DefaultHeader.KeyResponseTopic, topicName));
 
@@ -32,25 +48,38 @@ namespace Bankly.Sdk.Kafka.Values
         internal bool GetIsNewClient()
            => _header.ContainsKey(DefaultHeader.KeyIsNewClient);
 
+        internal void AddCurrentTraceId()
+        {
+            var activatyId = Activity.Current?.Id;
+            if(string.IsNullOrEmpty(activatyId) is false)
+                PutKeyValue(KeyValue.Create(DefaultHeader.KeyTraceId, activatyId));
+        }
+        internal string GetTraceId() => GetValue(DefaultHeader.KeyTraceId); // Warning, the traceId returned is the value in header.
+
         internal void AddIsNotification()
             => PutKeyValue(KeyValue.Create(DefaultHeader.KeyIsNotification, "true"));
 
         internal bool GetIsNotification()
            => _header.ContainsKey(DefaultHeader.KeyIsNotification);
 
-        
-
         internal void AddEventName(string eventName)
             => PutKeyValue(KeyValue.Create(DefaultHeader.KeyEventName, eventName));
 
-        internal string GetEventName()
+        internal void AddCommandName(string commandName)
+            => PutKeyValue(KeyValue.Create(DefaultHeader.KeyEventName, commandName));
+
+        internal string GetMessageName()
         {
-            var eventName = GetValue(DefaultHeader.KeyEventName);
+            var messageName = GetValue(DefaultHeader.KeyEventName);
 
-            if (string.IsNullOrWhiteSpace(eventName))
-                eventName = DefaultHeader.KeyDefaultEvenName;
+            if(string.IsNullOrWhiteSpace(messageName))
+            {
+                messageName = GetValue(DefaultHeader.KeyCommandName);
+                if(string.IsNullOrWhiteSpace(messageName))
+                    messageName = DefaultHeader.KeyDefaultMessageName;
+            }
 
-            return eventName;
+            return messageName;
         }
 
         internal void AddWillRetry(bool value)
@@ -59,11 +88,16 @@ namespace Bankly.Sdk.Kafka.Values
         internal bool GetWillRetry()
         {
             var value = GetValue(DefaultHeader.KeyWillRetry);
-            if (string.IsNullOrWhiteSpace(value))
+            if(string.IsNullOrWhiteSpace(value))
                 return false;
 
             return bool.Parse(value);
         }
+
+        internal void AddIsInternalProcess()
+            => PutKeyValue(KeyValue.Create(DefaultHeader.KeyInternalProcess, "True"));
+        internal string GetIsInternalProcess()
+            => GetValue(DefaultHeader.KeyInternalProcess);
 
         internal void AddRetryAt(int seconds, int attempt)
         {
@@ -72,10 +106,15 @@ namespace Bankly.Sdk.Kafka.Values
             PutKeyValue(KeyValue.Create(DefaultHeader.KeyCurrentAttempt, attempt.ToString()));
         }
 
+        internal void AddSourceTopicName(string sourceTopicName)
+            => PutKeyValue(KeyValue.Create(DefaultHeader.KeySourceTopicName, sourceTopicName));
+
+        internal string GetSourceTopicName() => GetValue(DefaultHeader.KeySourceTopicName);
+
         internal int GetRetryAt()
         {
             var value = GetValue(DefaultHeader.KeyRetryAt);
-            if (string.IsNullOrWhiteSpace(value))
+            if(string.IsNullOrWhiteSpace(value))
                 return 0;
 
             var retryWhen = long.Parse(value);
@@ -86,22 +125,34 @@ namespace Bankly.Sdk.Kafka.Values
         internal int GetCurrentAttempt()
         {
             var value = GetValue(DefaultHeader.KeyCurrentAttempt);
-            if (string.IsNullOrWhiteSpace(value))
+            if(string.IsNullOrWhiteSpace(value))
                 return 0;
 
             return int.Parse(value);
         }
 
-        
+        internal void AddCurrentTopicName(string topicName)
+            => PutKeyValue(KeyValue.Create(DefaultHeader.KeyCurrentTopicName, topicName));
+
+        public string GetCurrentTopicName()
+            => GetValue(DefaultHeader.KeyCurrentTopicName);
+
+
+        internal void AddCurrentGroupId(string groupId)
+            => PutKeyValue(KeyValue.Create(DefaultHeader.KeyCurrentGroupId, groupId));
+
+        public string GetCurrentGroupId()
+            => GetValue(DefaultHeader.KeyCurrentGroupId);
+
         public IEnumerable<KeyValue> GetKeyValues()
         {
-            foreach (var kv in _header)
+            foreach(var kv in _header)
                 yield return KeyValue.Create(kv.Key, kv.Value);
         }
 
         public void PutKeyValue(KeyValue keyValue)
         {
-            if (_header.ContainsKey(keyValue.Key))
+            if(_header.ContainsKey(keyValue.Key))
                 _header[keyValue.Key] = keyValue.Value;
             else
                 _header.Add(keyValue.Key, keyValue.Value);
@@ -129,7 +180,7 @@ namespace Bankly.Sdk.Kafka.Values
         {
             var value = string.Empty;
 
-            if (_header.ContainsKey(key))
+            if(_header.ContainsKey(key))
                 value = _header[key];
 
             return value;

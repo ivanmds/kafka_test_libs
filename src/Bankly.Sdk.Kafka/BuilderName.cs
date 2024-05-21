@@ -1,4 +1,4 @@
-﻿using Bankly.Sdk.Kafka.Notifications;
+using Bankly.Sdk.Contracts.Enums;
 
 namespace Bankly.Sdk.Kafka
 {

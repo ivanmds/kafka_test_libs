@@ -1,6 +1,8 @@
-﻿using Bankly.Sdk.Kafka.Consumers;
+using System.Collections.Generic;
+using Bankly.Sdk.Kafka.Consumers;
 using Bankly.Sdk.Kafka.DefaultValues;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Bankly.Sdk.Kafka.Configuration
 {
@@ -13,8 +15,17 @@ namespace Bankly.Sdk.Kafka.Configuration
         private readonly KafkaBuilder _kafkaBuilder;
         private readonly RetryConfiguration? _retryConfiguration;
         private readonly RetryTime? _retryTime;
+        private readonly List<string> _ignoreEvents;
+        private readonly bool _useSchemaRegistry;
 
-        public ListenerConfiguration(IServiceCollection services, string topicName, string groupId, KafkaBuilder kafkaBuilder, RetryConfiguration? retryConfiguration, RetryTime? retryTime = null)
+        public ListenerConfiguration(
+            IServiceCollection services,
+            string topicName,
+            string groupId,
+            KafkaBuilder kafkaBuilder,
+            RetryConfiguration? retryConfiguration,
+            RetryTime? retryTime = null,
+            bool useSchemaRegistry = false)
         {
             _services = services;
             _topicName = topicName;
@@ -23,6 +34,8 @@ namespace Bankly.Sdk.Kafka.Configuration
             _kafkaBuilder = kafkaBuilder;
             _retryConfiguration = retryConfiguration;
             _retryTime = retryTime;
+            _ignoreEvents = new List<string>();
+            _useSchemaRegistry = useSchemaRegistry;
         }
 
         internal static ListenerConfiguration Create(IServiceCollection services, string topicName, string groupId, KafkaBuilder kafkaBuilder, RetryConfiguration? retryConfiguration, RetryTime? retryTime = null)
@@ -34,29 +47,44 @@ namespace Bankly.Sdk.Kafka.Configuration
         internal KafkaBuilder KafkaBuilder => _kafkaBuilder;
         internal RetryConfiguration? RetryConfiguration => _retryConfiguration;
         internal RetryTime? RetryTime => _retryTime;
+        internal bool UseSchemaRegistry => _useSchemaRegistry;
 
 
-        public ListenerConfiguration AddConsumer<TConsumer>(string eventName = DefaultHeader.KeyDefaultEvenName)
+        public ListenerConfiguration AddConsumer<TConsumer>(string messageName = DefaultHeader.KeyDefaultMessageName)
             where TConsumer : IConsumerMessage
         {
-            var consumerKey = GetConsumerKey(GroupId, eventName);
+            var consumerKey = GetConsumerKey(GroupId, messageName);
             var consumerType = typeof(TConsumer);
-
-            //Add validation when add twice the same consumer
             Binds.AddType(consumerKey, consumerType);
-            _services.AddSingleton(consumerType);
+            _services.AddScoped(consumerType);
+
+            var consumerLoggerKey = GetConsumerLoggerKey(messageName);
+            var typeConsumerLogger = typeof(ILogger<TConsumer>);
+            Binds.AddType(consumerLoggerKey, typeConsumerLogger);
 
             return this;
         }
 
+        public ListenerConfiguration AddIgnoreEvents(params string[] eventsName)
+        {
+            _ignoreEvents.AddRange(eventsName);
+            return this;
+        }
+
+        internal List<string> GetIgnoreEvents => _ignoreEvents;
+
         internal string GetConsumerKey(string eventName)
           => GetConsumerKey(_groupId, eventName);
 
+        
         internal string GetEventNameFromConsumerKey(string keyConsumer)
             => keyConsumer.Replace(_groupId, "");
 
         internal void SetSourceTopicName(string sourceTopicName)
             => _sourceTopicName = sourceTopicName;
+
+        internal string GetConsumerLoggerKey(string eventName)
+            => $"{GetConsumerKey(_groupId, eventName)}_logger";
 
 
         internal static string GetConsumerKey(string groupId, string eventName)
@@ -64,7 +92,7 @@ namespace Bankly.Sdk.Kafka.Configuration
             var sufixName = eventName;
 
             if (string.IsNullOrWhiteSpace(sufixName))
-                sufixName = DefaultHeader.KeyDefaultEvenName;
+                sufixName = DefaultHeader.KeyDefaultMessageName;
 
             return $"{groupId}#{sufixName}";
         }

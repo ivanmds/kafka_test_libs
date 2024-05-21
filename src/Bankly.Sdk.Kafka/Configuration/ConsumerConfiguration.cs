@@ -1,4 +1,5 @@
-﻿using Bankly.Sdk.Kafka.Services;
+using System.Collections.Generic;
+using Bankly.Sdk.Kafka.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Bankly.Sdk.Kafka.Configuration
@@ -19,9 +20,17 @@ namespace Bankly.Sdk.Kafka.Configuration
             _registryListenerService = new RegistryListenerService();
         }
 
-        public ListenerConfiguration CreateListener(string topicName, string groupId, RetryConfiguration? retryConfiguration = null)
+        public ListenerConfiguration CreateListeners(List<string> topicNames, string groupId, RetryConfiguration? retryConfiguration = null, bool useSchemaRegistry = false)
         {
-            var listenerKey = groupId;
+            foreach (var topicName in topicNames)
+                CreateListener(topicName, groupId, retryConfiguration, useSchemaRegistry);
+
+            return _listenerConfiguration;
+        }
+
+        public ListenerConfiguration CreateListener(string topicName, string groupId, RetryConfiguration? retryConfiguration = null, bool useSchemaRegistry = false)
+        {
+            var listenerKey = $"{groupId}-{topicName}";
             _listenerConfiguration = ListenerConfiguration.Create(_services, topicName, groupId, _kafkaBuilder, retryConfiguration);
             _registryListenerService.Add(listenerKey, _listenerConfiguration);
 
@@ -34,7 +43,7 @@ namespace Bankly.Sdk.Kafka.Configuration
                     var retryListenerConfiguration = ListenerConfiguration.Create(_services, retryTopicName, groupId, _kafkaBuilder, retryConfiguration, retry);
                     retryListenerConfiguration.SetSourceTopicName(topicName);
 
-                    listenerKey = $"retry_{retry.Seconds}s_{groupId}";
+                    listenerKey = $"retry_{retry.Seconds}s_{listenerKey}";
                     _registryListenerService.Add(listenerKey, retryListenerConfiguration);
                 }
             }
