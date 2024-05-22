@@ -8,7 +8,7 @@ using Bankly.Sdk.Kafka.Configuration;
 using Bankly.Sdk.Kafka.Consumers;
 using Bankly.Sdk.Kafka.DefaultValues;
 using Bankly.Sdk.Kafka.Exceptions;
-using Bankly.Sdk.Kafka.Extensions;
+using Bankly.Sdk.Kafka.Avro;
 using Bankly.Sdk.Kafka.Metrics;
 using Bankly.Sdk.Kafka.Notifications;
 using Bankly.Sdk.Kafka.Traces;

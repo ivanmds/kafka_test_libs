@@ -5,8 +5,7 @@ using Confluent.SchemaRegistry.Serdes;
 using Confluent.SchemaRegistry;
 using Microsoft.AspNetCore.Mvc;
 using Avro;
-using Bankly.Sdk.Kafka.Extensions;
-using System.Text.Json;
+using Bankly.Sdk.Kafka.Avro;
 
 namespace KafkaTest.Controllers
 {
@@ -33,79 +32,49 @@ namespace KafkaTest.Controllers
 
         private readonly IProducerMessage _producerMessage;
         private readonly ILogger<CustomerController> _logger;
+        private readonly IGenericRecordConverter _genericRecordConverter;
         private static int count = 0;
 
-        public CustomerController(ILogger<CustomerController> logger, IProducerMessage producerMessage)
+        public CustomerController(ILogger<CustomerController> logger, IProducerMessage producerMessage, IGenericRecordConverter genericRecordConverter)
         {
             _logger = logger;
             _producerMessage = producerMessage;
+            _genericRecordConverter = genericRecordConverter;
         }
 
         [HttpGet(Name = "GetCustomer")]
         public async Task<IEnumerable<WeatherForecast>> GetTest()
         {
             var topicName = "isa_hello";
+            var customer1 = new CustomerAvro { Name = "Ivan", Address = "127.0.0.1", FatherName = "Ivan old", Phone = new PhoneDto { DDD = "11", Number = "123456789" } };
 
-            var schemaRegistry = new CachedSchemaRegistryClient(new SchemaRegistryConfig
+            var converted = await _genericRecordConverter.ParseToGenericRecordAsync(customer1, topicName);
+
+            try
             {
-                Url = "http://ksr.root-platform.insecure.bankly-staging-us-east-1-aws.internal"
-            });
-
-            var subjectName = $"{topicName}-value";
-            var schema = await schemaRegistry.GetLatestSchemaAsync(subjectName);
-            //var temp = await schemaRegistry.GetLatestSchemaAsync("test_ivan");
-            var temp2 = (RecordSchema)RecordSchema.Parse(await schemaRegistry.GetSchemaAsync(schema.Subject, schema.Version));
-
-            using (var producer =
-                new ProducerBuilder<string, GenericRecord>(new ProducerConfig { BootstrapServers = "localhost:9092" })
-                    .SetValueSerializer(new AvroSerializer<GenericRecord>(schemaRegistry))
-                    .Build())
-            {
-                Console.WriteLine($"{producer.Name} producing on {topicName}. Enter user names, q to exit.");
-                var customer1 = new CustomerAvro { Name = "Ivan", Address = "127.0.0.1", FatherName = "Ivan old", Phone = new PhoneDto { DDD = "11", Number = "123456789" } };
-
-                //var jsonString = JsonSerializer.Serialize(customer1);
-                var record1 = customer1.ParseToGenericRecord(temp2);
-
-                var record = new GenericRecord(temp2);
-                record.Add("Name", "Ivan");
-                record.Add("Address", "123456");
-                record.Add("MotherName", null);
-                record.Add("FatherName", "Ivan");
-
-                var temp3 = temp2.Fields.Where(p => p.Name == "Phone").FirstOrDefault();
-
-                var recordPhone = new GenericRecord((RecordSchema)temp3.Schema);
-                recordPhone.Add("DDD", "12");
-                recordPhone.Add("Number", "123456789");
-                record.Add("Phone", recordPhone);
-
-                try
-                {
-                    var dr = await producer.ProduceAsync(topicName, new Message<string, GenericRecord> { Key = "123", Value = record1 });
-                    Console.WriteLine($"produced to: {dr.TopicPartitionOffset}");
-                }
-                catch (ProduceException<string, GenericRecord> ex)
-                {
-                    Console.WriteLine($"error producing message: {ex}");
-                }
-
-
-
-                //var header = HeaderValue.Create();
-                //header.AddCorrelationId(Guid.NewGuid().ToString());
-                //header.AddResponseTopic("topic_to_response");
-
-                //var notification = GetCustomerNotification();
-                //await _producerMessage.ProduceWithBindNotificationAsync(notification.EntityId, notification, header);
-
-                return Enumerable.Range(1, 5).Select(index => new WeatherForecast
-                {
-                    Date = DateTime.Now.AddDays(index),
-                    TemperatureC = Random.Shared.Next(-20, 55),
-                })
-            .ToArray();
+                await _producerMessage.ProduceAsync(topicName, converted);
+                //Console.WriteLine($"produced to: {dr.TopicPartitionOffset}");
             }
+            catch (ProduceException<string, GenericRecord> ex)
+            {
+                Console.WriteLine($"error producing message: {ex}");
+            }
+
+
+
+            //var header = HeaderValue.Create();
+            //header.AddCorrelationId(Guid.NewGuid().ToString());
+            //header.AddResponseTopic("topic_to_response");
+
+            //var notification = GetCustomerNotification();
+            //await _producerMessage.ProduceWithBindNotificationAsync(notification.EntityId, notification, header);
+
+            return Enumerable.Range(1, 5).Select(index => new WeatherForecast
+            {
+                Date = DateTime.Now.AddDays(index),
+                TemperatureC = Random.Shared.Next(-20, 55),
+            }).ToArray();
+
 
             //int refer = count++;
             //private Customer GetCustomer()

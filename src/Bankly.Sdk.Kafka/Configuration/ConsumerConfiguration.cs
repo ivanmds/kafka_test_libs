@@ -20,18 +20,18 @@ namespace Bankly.Sdk.Kafka.Configuration
             _registryListenerService = new RegistryListenerService();
         }
 
-        public ListenerConfiguration CreateListeners(List<string> topicNames, string groupId, RetryConfiguration? retryConfiguration = null, bool useSchemaRegistry = false)
+        public ListenerConfiguration CreateListeners(List<string> topicNames, string groupId, RetryConfiguration? retryConfiguration = null, bool useAvro = false)
         {
             foreach (var topicName in topicNames)
-                CreateListener(topicName, groupId, retryConfiguration, useSchemaRegistry);
+                CreateListener(topicName, groupId, retryConfiguration, useAvro);
 
             return _listenerConfiguration;
         }
 
-        public ListenerConfiguration CreateListener(string topicName, string groupId, RetryConfiguration? retryConfiguration = null, bool useSchemaRegistry = false)
+        public ListenerConfiguration CreateListener(string topicName, string groupId, RetryConfiguration? retryConfiguration = null, bool useAvro = false)
         {
             var listenerKey = $"{groupId}-{topicName}";
-            _listenerConfiguration = ListenerConfiguration.Create(_services, topicName, groupId, _kafkaBuilder, retryConfiguration);
+            _listenerConfiguration = ListenerConfiguration.Create(_services, topicName, groupId, _kafkaBuilder, retryConfiguration, useAvro:useAvro);
             _registryListenerService.Add(listenerKey, _listenerConfiguration);
 
             if (retryConfiguration != null)
@@ -40,7 +40,7 @@ namespace Bankly.Sdk.Kafka.Configuration
                 {
                     var retryTopicName = BuilderName.GetTopicNameRetry(topicName, groupId, retry.Seconds);
 
-                    var retryListenerConfiguration = ListenerConfiguration.Create(_services, retryTopicName, groupId, _kafkaBuilder, retryConfiguration, retry);
+                    var retryListenerConfiguration = ListenerConfiguration.Create(_services, retryTopicName, groupId, _kafkaBuilder, retryConfiguration, retry, useAvro);
                     retryListenerConfiguration.SetSourceTopicName(topicName);
 
                     listenerKey = $"retry_{retry.Seconds}s_{listenerKey}";

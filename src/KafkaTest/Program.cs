@@ -2,6 +2,7 @@ using Bankly.Sdk.Contracts.Enums;
 using Bankly.Sdk.Kafka;
 using Bankly.Sdk.Kafka.Configuration;
 using KafkaTest.Consumers;
+using static System.Net.WebRequestMethods;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,7 +18,7 @@ var topicNameCustomerEvent = BuilderName.GetTopicName(true, Context.Account, "cu
 //var topicNameCardEvent = BuilderName.GetTopicName(true, Context.Card, "Cards");
 
 var connection = "localhost:9092";
-var consumerBuilder = builder.Services.AddKafka(KafkaConnection.Create(connection))
+var consumerBuilder = builder.Services.AddKafka(KafkaConnection.Create(connection, urlSchemaRegistryServer: "http://ksr.root-platform.insecure.bankly-staging-us-east-1-aws.internal"))
         //.AddSkippedMessage<SkippedMessage>()
         //.AddConsumerErrorFatal<ConsumerErrorFatal>()
         //.Bind<CustomerNotification>(topicNameCustomerEvent)
@@ -33,7 +34,7 @@ var consumerBuilder = builder.Services.AddKafka(KafkaConnection.Create(connectio
 //    .AddConsumer<CustomerCreatedConsumer>("CUSTOMER_WAS_CREATED")
 //    .AddConsumer<CustomerUpdatedConsumer>("CUSTOMER_WAS_UPDATED");
 
-consumerBuilder.CreateListener("isa_hello", "anothers_consumer")
+consumerBuilder.CreateListener("isa_hello", "anothers_consumer", useAvro: true)
     .AddConsumer<AnotherConsumer>();
 
 

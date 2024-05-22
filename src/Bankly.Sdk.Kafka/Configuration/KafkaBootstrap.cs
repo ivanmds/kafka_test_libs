@@ -1,4 +1,5 @@
 using System;
+using Bankly.Sdk.Kafka.Avro;
 using Bankly.Sdk.Kafka.Clients;
 using Bankly.Sdk.Kafka.Metrics;
 using Bankly.Sdk.Kafka.Traces;
@@ -19,6 +20,8 @@ namespace Bankly.Sdk.Kafka.Configuration
             services.AddSingleton(kafkaConnection);
             services.AddSingleton(kafkaBuilder);
             services.AddSingleton<IProducerMessage, ProducerMessage>();
+            services.AddSingleton<IGenericRecordConverter, GenericRecordConverter>();
+
 
             var kafkaAdminClient = new KafkaAdminClient(kafkaConnection);
             services.AddSingleton((IKafkaAdminClient)kafkaAdminClient);

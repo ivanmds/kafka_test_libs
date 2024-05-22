@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Avro.Generic;
 using Bankly.Sdk.Contracts.Events;
 using Bankly.Sdk.Kafka.Configuration;
 using Bankly.Sdk.Kafka.Contracts;
@@ -13,6 +14,8 @@ using Bankly.Sdk.Kafka.Metrics;
 using Bankly.Sdk.Kafka.Traces;
 using Bankly.Sdk.Kafka.Values;
 using Confluent.Kafka;
+using Confluent.SchemaRegistry;
+using Confluent.SchemaRegistry.Serdes;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
@@ -21,6 +24,7 @@ namespace Bankly.Sdk.Kafka.Clients
     internal class ProducerMessage : IProducerMessage, IDisposable
     {
         private readonly IProducer<string, string> _kafkaProducer;
+        private readonly IProducer<string, GenericRecord> _kafkaProducerAvro;
         private readonly IMetricService _metricService;
         private readonly ITraceService _traceService;
         private readonly ILogger<ProducerMessage> _logger;
@@ -37,6 +41,18 @@ namespace Bankly.Sdk.Kafka.Clients
             _traceService = traceService;
             _logger = logger;
             _kafkaProducer = new ProducerBuilder<string, string>(producerConfig).Build();
+
+            if (string.IsNullOrEmpty(kafkaConnection.UrlSchemaRegistryServer) == false)
+            {
+                var schemaRegistry = new CachedSchemaRegistryClient(new SchemaRegistryConfig
+                {
+                    Url = kafkaConnection.UrlSchemaRegistryServer
+                });
+
+                _kafkaProducerAvro = new ProducerBuilder<string, GenericRecord>(producerConfig)
+                    .SetValueSerializer(new AvroSerializer<GenericRecord>(schemaRegistry))
+                    .Build();
+            }
         }
 
         public async Task<ProduceResult> ProduceWithBindAsync<TMessage>(TMessage message, CancellationToken cancellationToken = default) where TMessage : class
@@ -50,6 +66,9 @@ namespace Bankly.Sdk.Kafka.Clients
 
         public async Task<ProduceResult> ProduceWithBindAsync<TMessage>(string key, TMessage message, HeaderValue header, CancellationToken cancellationToken = default) where TMessage : class
              => await ProduceMessageAsync(null, key, message, header, cancellationToken);
+
+
+
 
         public async Task<ProduceResult> ProduceAsync<TMessage>(string topicName, TMessage message, CancellationToken cancellationToken = default)
             where TMessage : class
@@ -65,6 +84,22 @@ namespace Bankly.Sdk.Kafka.Clients
 
         public async Task<ProduceResult> ProduceAsync<TMessage>(string topicName, string key, TMessage message, HeaderValue header, CancellationToken cancellationToken = default) where TMessage : class
             => await ProduceMessageAsync(topicName, key, message, header, cancellationToken);
+
+
+
+
+        public async Task<ProduceResult> ProduceAsync(string topicName, GenericRecord message, CancellationToken cancellationToken = default)
+            => await ProduceMessageAvroAsync(topicName, null, message, null, cancellationToken);
+
+        public async Task<ProduceResult> ProduceAsync(string topicName, string key, GenericRecord message, CancellationToken cancellationToken = default)
+            => await ProduceMessageAvroAsync(topicName, key, message, null, cancellationToken);
+
+        public async Task<ProduceResult> ProduceAsync(string topicName, GenericRecord message, HeaderValue header, CancellationToken cancellationToken = default)
+            => await ProduceMessageAvroAsync(topicName, null, message, header, cancellationToken);
+
+        public async Task<ProduceResult> ProduceAsync(string topicName, string key, GenericRecord message, HeaderValue header, CancellationToken cancellationToken = default)
+            => await ProduceMessageAvroAsync(topicName, key, message, header, cancellationToken);
+
 
 
         public async Task<ProduceResult> ProduceWithBindNotificationAsync<TMessage>(string key, IEventNotification<TMessage> eventMessage, CancellationToken cancellationToken = default) where TMessage : class
@@ -83,6 +118,8 @@ namespace Bankly.Sdk.Kafka.Clients
             => await ProduceMessageAsync(topicName, key, eventMessage, header, cancellationToken);
 
 
+
+
         private async Task<ProduceResult> ProduceMessageAsync<TMessage>(string? topicName, string? key, TMessage message, HeaderValue? header, CancellationToken cancellationToken)
            where TMessage : class
         {
@@ -93,23 +130,25 @@ namespace Bankly.Sdk.Kafka.Clients
 
             try
             {
-                if(topicName is null)
+                if (topicName is null)
                 {
                     var messageFullName = typeof(TMessage).FullName;
                     topicName = Binds.GetString(messageFullName);
-                    if(topicName == null)
+                    if (topicName == null)
                         throw new NoneBindConfiguredException(messageFullName);
                 }
 
-                if(topicName.StartsWith("bankly.event"))
+
+                if (topicName.StartsWith("bankly.event"))
                     throw new InvalidTopicNameException("Should be used the method to IEventNotification");
+
 
                 var messageNotification = message.GetType() == typeof(string)
                   ? message.ToString()
                   : JsonConvert.SerializeObject(message, DefaultSerializerSettings.JsonSettings);
 
                 var kafkaMessage = new Message<string, string> { Value = messageNotification };
-                if(string.IsNullOrEmpty(key) is false)
+                if (string.IsNullOrEmpty(key) is false)
                     kafkaMessage.Key = key;
 
                 header ??= new HeaderValue();
@@ -118,14 +157,14 @@ namespace Bankly.Sdk.Kafka.Clients
 
                 SetDefaultTraceTags(activity, topicName, header);
 
-                if(message is IMessage)
+                if (message is IMessage)
                     header.AddCommandName(((IMessage)message).MessageName ?? "");
 
-                if(header != null)
+                if (header != null)
                 {
                     kafkaMessage.Headers = new Headers();
 
-                    foreach(var kv in header.GetKeyValues())
+                    foreach (var kv in header.GetKeyValues())
                     {
                         var valueBytes = Encoding.ASCII.GetBytes(kv.Value);
                         var msgHeader = new Header(kv.Key, valueBytes);
@@ -135,7 +174,7 @@ namespace Bankly.Sdk.Kafka.Clients
 
                 var result = await _kafkaProducer.ProduceAsync(topicName, kafkaMessage, cancellationToken);
 
-                if(KafkaTelemetric.LogLevel > TelemetricLevel.Medium)
+                if (KafkaTelemetric.LogLevel > TelemetricLevel.Medium)
                 {
                     var msg = InternalLogMessage.Create("producer", result.Topic, result.Partition, result.Offset, header.GetCorrelationId());
                     _logger.LogInformation(msg.ToJson());
@@ -146,7 +185,7 @@ namespace Bankly.Sdk.Kafka.Clients
                 tagList.Add(_metricService.CreateCustomTag(ConstValues.MESSAGE_STATUS, tagValue));
                 return produceResult;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 SetTagWhenError(ex, activity, tagList);
                 throw ex;
@@ -163,7 +202,7 @@ namespace Bankly.Sdk.Kafka.Clients
 
         private Activity GetProduceActivity()
         {
-            if(KafkaTelemetric.TraceLevel > TelemetricLevel.Medium)
+            if (KafkaTelemetric.TraceLevel > TelemetricLevel.Medium)
                 return _traceService.StartActivity("IProducerMessage.ProduceNotification", ActivityKind.Producer);
 
             return null;
@@ -179,18 +218,18 @@ namespace Bankly.Sdk.Kafka.Clients
 
             try
             {
-                if(string.IsNullOrEmpty(key))
+                if (string.IsNullOrEmpty(key))
                     throw new InvalidProgramException("Should be informed the message key.");
 
-                if(topicName is null)
+                if (topicName is null)
                 {
                     var messageFullName = eventMessage.GetType().FullName;
                     topicName = Binds.GetString(messageFullName);
-                    if(topicName == null)
+                    if (topicName == null)
                         throw new NoneBindConfiguredException("Make bind of message with topicName");
                 }
 
-                if(!topicName.StartsWith("bankly.event"))
+                if (!topicName.StartsWith("bankly.event"))
                     throw new InvalidTopicNameException("The topic name should be started with bankly.event");
 
                 var messageNotification = JsonConvert.SerializeObject(eventMessage, DefaultSerializerSettings.JsonSettings);
@@ -205,7 +244,7 @@ namespace Bankly.Sdk.Kafka.Clients
 
                 kafkaMessage.Headers = new Headers();
 
-                foreach(var kv in header.GetKeyValues())
+                foreach (var kv in header.GetKeyValues())
                 {
                     var valueBytes = Encoding.ASCII.GetBytes(kv.Value);
                     var msgHeader = new Header(kv.Key, valueBytes);
@@ -214,7 +253,7 @@ namespace Bankly.Sdk.Kafka.Clients
 
                 var result = await _kafkaProducer.ProduceAsync(topicName, kafkaMessage, cancellationToken);
 
-                if(KafkaTelemetric.LogLevel > TelemetricLevel.Medium)
+                if (KafkaTelemetric.LogLevel > TelemetricLevel.Medium)
                 {
                     var msg = InternalLogMessage.Create("producer notification", result.Topic, result.Partition, result.Offset, header.GetCorrelationId());
                     _logger.LogInformation(msg.ToJson());
@@ -226,7 +265,7 @@ namespace Bankly.Sdk.Kafka.Clients
                 tagList.Add(_metricService.CreateCustomTag(ConstValues.MESSAGE_STATUS, tagValue));
                 return produceResult;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 SetTagWhenError(ex, activity, tagList);
                 throw ex;
@@ -241,9 +280,73 @@ namespace Bankly.Sdk.Kafka.Clients
             }
         }
 
+
+        private async Task<ProduceResult> ProduceMessageAvroAsync(string topicName, string? key, GenericRecord message, HeaderValue? header, CancellationToken cancellationToken)
+        {
+            var tagList = GetTagList(false, header?.GetCompanyKeyInternal() ?? "none", header?.GetIsInternalProcess());
+            var watch = Stopwatch.StartNew();
+
+            Activity activity = GetProduceActivity();
+
+            try
+            {
+                var kafkaMessage = new Message<string, GenericRecord> { Value = message };
+                if (string.IsNullOrEmpty(key) is false)
+                    kafkaMessage.Key = key;
+
+                header ??= new HeaderValue();
+                header.AddIsNewClient();
+                header.AddCurrentTraceId();
+
+                SetDefaultTraceTags(activity, topicName, header);
+
+                if (message is IMessage)
+                    header.AddCommandName(((IMessage)message).MessageName ?? "");
+
+                if (header != null)
+                {
+                    kafkaMessage.Headers = new Headers();
+
+                    foreach (var kv in header.GetKeyValues())
+                    {
+                        var valueBytes = Encoding.ASCII.GetBytes(kv.Value);
+                        var msgHeader = new Header(kv.Key, valueBytes);
+                        kafkaMessage.Headers.Add(msgHeader);
+                    }
+                }
+
+                var result = await _kafkaProducerAvro.ProduceAsync(topicName, kafkaMessage, cancellationToken);
+
+                if (KafkaTelemetric.LogLevel > TelemetricLevel.Medium)
+                {
+                    var msg = InternalLogMessage.Create("producer", result.Topic, result.Partition, result.Offset, header.GetCorrelationId());
+                    _logger.LogInformation(msg.ToJson());
+                }
+
+                var produceResult = ProduceResult.Create(result.Status == PersistenceStatus.Persisted);
+                var tagValue = produceResult.IsSuccess ? ConstValues.ProducerMessageStatus.Success : ConstValues.ProducerMessageStatus.Unsuccess;
+                tagList.Add(_metricService.CreateCustomTag(ConstValues.MESSAGE_STATUS, tagValue));
+                return produceResult;
+            }
+            catch (Exception ex)
+            {
+                SetTagWhenError(ex, activity, tagList);
+                throw ex;
+            }
+            finally
+            {
+                watch.Stop();
+                var elapsedTime = (int)watch.ElapsedMilliseconds;
+                _metricService.RecordProducerElapsedTime(elapsedTime, tagList.ToArray());
+
+                activity?.Dispose();
+            }
+        }
+
+
         private void SetDefaultTraceTags(Activity activity, string topicName, HeaderValue header)
         {
-            if(activity != null)
+            if (activity != null)
             {
                 activity.SetTag(ConstValues.TOPIC_NAME, topicName);
                 activity.SetTag(ConstValues.CORRELATION_ID, header.GetCorrelationId());
@@ -282,9 +385,9 @@ namespace Bankly.Sdk.Kafka.Clients
 
         protected virtual void Dispose(bool disposing)
         {
-            if(!_disposedValue)
+            if (!_disposedValue)
             {
-                if(disposing)
+                if (disposing)
                 {
                     _kafkaProducer.Dispose();
                 }

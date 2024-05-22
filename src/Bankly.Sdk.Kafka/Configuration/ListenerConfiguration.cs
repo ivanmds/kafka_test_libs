@@ -16,7 +16,7 @@ namespace Bankly.Sdk.Kafka.Configuration
         private readonly RetryConfiguration? _retryConfiguration;
         private readonly RetryTime? _retryTime;
         private readonly List<string> _ignoreEvents;
-        private readonly bool _useSchemaRegistry;
+        private readonly bool _useAvro;
 
         public ListenerConfiguration(
             IServiceCollection services,
@@ -25,7 +25,7 @@ namespace Bankly.Sdk.Kafka.Configuration
             KafkaBuilder kafkaBuilder,
             RetryConfiguration? retryConfiguration,
             RetryTime? retryTime = null,
-            bool useSchemaRegistry = false)
+            bool useAvro = false)
         {
             _services = services;
             _topicName = topicName;
@@ -35,11 +35,11 @@ namespace Bankly.Sdk.Kafka.Configuration
             _retryConfiguration = retryConfiguration;
             _retryTime = retryTime;
             _ignoreEvents = new List<string>();
-            _useSchemaRegistry = useSchemaRegistry;
+            _useAvro = useAvro;
         }
 
-        internal static ListenerConfiguration Create(IServiceCollection services, string topicName, string groupId, KafkaBuilder kafkaBuilder, RetryConfiguration? retryConfiguration, RetryTime? retryTime = null)
-            => new ListenerConfiguration(services, topicName, groupId, kafkaBuilder, retryConfiguration, retryTime);
+        internal static ListenerConfiguration Create(IServiceCollection services, string topicName, string groupId, KafkaBuilder kafkaBuilder, RetryConfiguration? retryConfiguration, RetryTime? retryTime = null, bool useAvro = false)
+            => new ListenerConfiguration(services, topicName, groupId, kafkaBuilder, retryConfiguration, retryTime, useAvro);
 
         internal string TopicName => _topicName;
         internal string SourceTopicName => _sourceTopicName;
@@ -47,7 +47,7 @@ namespace Bankly.Sdk.Kafka.Configuration
         internal KafkaBuilder KafkaBuilder => _kafkaBuilder;
         internal RetryConfiguration? RetryConfiguration => _retryConfiguration;
         internal RetryTime? RetryTime => _retryTime;
-        internal bool UseSchemaRegistry => _useSchemaRegistry;
+        internal bool useAvro => _useAvro;
 
 
         public ListenerConfiguration AddConsumer<TConsumer>(string messageName = DefaultHeader.KeyDefaultMessageName)

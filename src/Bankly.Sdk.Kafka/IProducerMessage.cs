@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Avro.Generic;
 using Bankly.Sdk.Contracts.Events;
 using Bankly.Sdk.Kafka.Values;
 
@@ -36,6 +37,16 @@ namespace Bankly.Sdk.Kafka
 
 
 
+        Task<ProduceResult> ProduceAsync(string topicName, GenericRecord message, CancellationToken cancellationToken = default);
+
+        Task<ProduceResult> ProduceAsync(string topicName, string key, GenericRecord message, CancellationToken cancellationToken = default);
+
+        Task<ProduceResult> ProduceAsync(string topicName, GenericRecord message, HeaderValue header, CancellationToken cancellationToken = default);
+
+        Task<ProduceResult> ProduceAsync(string topicName, string key, GenericRecord message, HeaderValue header, CancellationToken cancellationToken = default);
+
+
+
 
         Task<ProduceResult> ProduceWithBindNotificationAsync<TMessage>(string key, IEventNotification<TMessage> eventMessage, CancellationToken cancellationToken = default)
            where TMessage : class;
@@ -51,5 +62,6 @@ namespace Bankly.Sdk.Kafka
         Task<ProduceResult> ProduceNotificationAsync<TMessage>(string topicName, string key, IEventNotification<TMessage> eventMessage, HeaderValue header, CancellationToken cancellationToken = default)
             where TMessage : class;
         
+
     }
 }

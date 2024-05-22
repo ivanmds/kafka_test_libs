@@ -49,7 +49,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
             var kafkaConnection = listenerConfiguration.KafkaBuilder.KafkaConnection;
 
             if(string.IsNullOrEmpty(kafkaConnection.UrlSchemaRegistryServer))
-                throw new ConnectionSchemaRegistryServerException("Should be informed url to cluster schema registry");
+                throw new ConnectionSchemaRegistryServerException();
 
             return new CachedSchemaRegistryClient(new SchemaRegistryConfig
             {

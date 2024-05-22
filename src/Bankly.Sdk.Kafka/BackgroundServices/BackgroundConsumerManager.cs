@@ -83,7 +83,7 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
         {
             IKafkaConsumer kafkaConsumer;
 
-            if(listener.UseSchemaRegistry)
+            if(listener.useAvro)
                 kafkaConsumer = new KafkaConsumerAvroGenericRecord(_provider, listener, _producerMessage, _logger, _metricService, _traceService, _hostApplicationLifetime);
             else
                 kafkaConsumer = new KafkaConsumerString(_provider, listener, _producerMessage, _logger, _metricService, _traceService, _hostApplicationLifetime);

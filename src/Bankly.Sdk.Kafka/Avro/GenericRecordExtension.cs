@@ -4,29 +4,30 @@ using System.Text.Json.Nodes;
 using Avro;
 using Avro.Generic;
 
-namespace Bankly.Sdk.Kafka.Extensions
+namespace Bankly.Sdk.Kafka.Avro
 {
-    public static class GenericRecordExtension
+    internal static class GenericRecordExtension
     {
-        public static JsonObject ParseToJson(this GenericRecord generic)
+        internal static JsonObject ParseToJson(this GenericRecord generic)
         {
-            return BuildJson(generic.Schema);
+            return BuildJson(generic);
         }
 
-        private static JsonObject BuildJson(RecordSchema schema)
+        private static JsonObject BuildJson(GenericRecord generic)
         {
             var json = new JsonObject();
+            var schema = generic.Schema;
 
-            foreach (var field in schema.Fields)
+            foreach (var field in schema)
             {
-                if (field.Schema is RecordSchema)
+                var value = generic[field.Name];
+                if (value is GenericRecord)
                 {
-                    var value = BuildJson((RecordSchema)field.Schema);
-                    json.Add(field.Name, value);
+                    var jsonResult = BuildJson(value as GenericRecord);
+                    json.Add(field.Name, jsonResult);
                 }
                 else
                 {
-                    var value = schema[field.Name];
                     var jsonValue = JsonValue.Create(value);
                     json.Add(field.Name, jsonValue);
                 }
@@ -35,7 +36,7 @@ namespace Bankly.Sdk.Kafka.Extensions
             return json;
         }
 
-        public static GenericRecord ParseToGenericRecord(this object value, RecordSchema schema)
+        internal static GenericRecord ParseToGenericRecord(this object value, RecordSchema schema)
         {
             var jsonString = JsonSerializer.Serialize(value);
             var json = JsonSerializer.Deserialize<JsonObject>(jsonString);
