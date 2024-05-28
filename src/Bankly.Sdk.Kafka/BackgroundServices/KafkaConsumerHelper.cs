@@ -9,16 +9,17 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
 {
     internal class KafkaConsumerHelper
     {
+        private static CachedSchemaRegistryClient _cachedSchemaRegistryClient = null;
         private const int DEFAULT_MAX_POLL_INTERVALS_MS = 300000;
 
         internal static HeaderValue ParseHeader(Headers headers)
         {
             var headerValue = HeaderValue.Create();
 
-            if(headers is null)
+            if (headers is null)
                 return headerValue;
 
-            foreach(var kv in headers)
+            foreach (var kv in headers)
             {
                 var value = Encoding.Default.GetString(kv.GetValueBytes());
                 headerValue.PutKeyValue(kv.Key, value);
@@ -46,15 +47,20 @@ namespace Bankly.Sdk.Kafka.BackgroundServices
 
         internal static CachedSchemaRegistryClient GetCachedSchemaRegistryClient(ListenerConfiguration listenerConfiguration)
         {
-            var kafkaConnection = listenerConfiguration.KafkaBuilder.KafkaConnection;
-
-            if(string.IsNullOrEmpty(kafkaConnection.UrlSchemaRegistryServer))
-                throw new ConnectionSchemaRegistryServerException();
-
-            return new CachedSchemaRegistryClient(new SchemaRegistryConfig
+            if (_cachedSchemaRegistryClient == null)
             {
-                Url = kafkaConnection.UrlSchemaRegistryServer
-            });
+                var kafkaConnection = listenerConfiguration.KafkaBuilder.KafkaConnection;
+
+                if (string.IsNullOrEmpty(kafkaConnection.UrlSchemaRegistryServer))
+                    throw new ConnectionSchemaRegistryServerException();
+
+                _cachedSchemaRegistryClient = new CachedSchemaRegistryClient(new SchemaRegistryConfig
+                {
+                    Url = kafkaConnection.UrlSchemaRegistryServer
+                });
+            }
+
+            return _cachedSchemaRegistryClient;
         }
     }
 }
